@@ -1,0 +1,127 @@
+body,td,a,div,.p {
+	font-family: arial, sans-serif
+}
+
+div,td {
+	color: #000000
+}
+
+a:link,.w,.w a:link {
+	color: #0000cc
+}
+
+a:visited {
+	color: #551a8b
+}
+
+a:active {
+	color: #ff0000
+}
+
+.enteteCol {
+	text-align: center;
+	width: 34px;
+}
+
+.enteteRow {
+	text-align: center;
+	height: 38px;
+}
+
+.case1 {
+	background-color: #DDDDDD;
+	height: 38px;
+	width: 34px;
+	border: outset thin #DDDDDD;
+}
+
+.case2 {
+	background-color: #AAAAAA;
+	height: 38px;
+	width: 34px;
+	border: outset thin #AAAAAA;
+}
+
+.selected1 {
+	background-color: #DD0000;
+	height: 38px;
+	width: 34px;
+}
+
+.selected2 {
+	background-color: #AA0000;
+	height: 38px;
+	width: 34px;
+}
+
+.legalmove1 {
+	background-color: #DDDD00;
+	height: 38px;
+	width: 34px;
+}
+
+.legalmove2 {
+	background-color: #AAAA00;
+	height: 38px;
+	width: 34px;
+}
+
+.chessed1 {
+	background-color: #DD00DD;
+	height: 38px;
+	width: 34px;
+}
+
+.chessed2 {
+	background-color: #AA00AA;
+	height: 38px;
+	width: 34px;
+}
+
+.gwt-Button, .gwt-ToggleButton {
+  width: 30px;
+}
+
+.gwt-Button {
+  background-color: #C3D9FF;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-color: #E8F1FF rgb(157, 174, 205) rgb(157, 174, 205) rgb(232, 241, 255);
+}
+.gwt-ToggleButton-up {
+  background-color: #C3D9FF;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-color: #E8F1FF rgb(157, 174, 205) rgb(157, 174, 205) rgb(232, 241, 255);
+  cursor: pointer;
+  cursor: hand;
+}
+
+.gwt-ToggleButton-up-hovering {
+  background-color: #C3D9FF;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-color: #E8F1FF rgb(157, 174, 205) rgb(157, 174, 205) rgb(232, 241, 255);
+  cursor: pointer;
+  cursor: hand;
+}
+
+.gwt-ToggleButton-down {
+  background-color: #C3D9FF;
+  padding: 2px;
+  background-color: #E8F1FF;
+  border: 2px solid transparent;
+  border-color: #9DAECD rgb(232, 241, 255) rgb(232, 241, 255) rgb(157, 174, 205);
+  cursor: pointer;
+  cursor: hand;
+}
+
+.gwt-ToggleButton-down-hovering {
+  background-color: #C3D9FF;
+  padding: 2px;
+  background-color: #E8F1FF;
+  border: 2px solid transparent;
+  border-color: #9DAECD rgb(232, 241, 255) rgb(232, 241, 255) rgb(157, 174, 205);
+  cursor: pointer;
+  cursor: hand;
+}

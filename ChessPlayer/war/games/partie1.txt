@@ -1,0 +1,15 @@
+1.e4
+2.c5
+3.Cf3
+4.g6	!?
+5.c3
+6.b6		?! Le simple 3...Fg7 est bien entendu meilleur.
+7.d4
+8.Fb7
+9.Fc4		! Les Noirs n'attendaient sans doute que le "naturel" 5.Fd3. Maintenant 5...Fxe4 est réfuté de deux façons : 6.Fxf7+ Rxf7 7.Cxg5+ ou plus fort encore ; 6.Cg5! d5 (forcé) 7.Fb5+ Cd7 8.Cxe4 dxe4 9.dxc5 bxc5 10.Da4 suivit de 11.OO et 12.Td1.
+10.d5		? La règle : Si vous avez un retard de développement, n'entreprenez rien, gardez le jeu fermé et rattrapez votre retard, vient d'être totalement ignorée et le résultat ne se fait pas attendre...
+11.exd5
+12.Fxd5
+13.Da4+
+14.Fc6
+15.Ce5		! Rideau ! 

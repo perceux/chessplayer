@@ -1,0 +1,13 @@
+1.e4
+1...e5
+2.Bc4
+2...d6
+3.Nf3
+3...Bg4
+4.Nc3
+4...g6	Une erreur qui va être magistralement réfutée. Un développement de cavalier comme 4...Cf6 ou 4...Cc6 auraient évité les désagréments qui suivent.
+5.Nxe5	Capturant un pion mais laissant la dame noire en prise! Les noirs durent croire à une étourderie à sanctionner immédiatement... 
+5...Bxd1	Gagnant la dame mais perdant la partie. Un moindre mal eut été la capture du cavalier, bien qu'après 5...dxe5, 6.Dxg4 les noirs soient laissés dans une position miséreuse et avec le handicap d'un pion de moins.
+6.Bxf7+
+6...Ke7	Il n'y a pas le choix.
+7.Nd5#
