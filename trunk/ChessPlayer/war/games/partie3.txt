@@ -1,0 +1,8 @@
+1.e4	Partie du pion dame
+1...e5
+2.f4
+2...Bc5
+3.fxe5	Ce coup naturel est une grosse bévue qui ouvre, on va le voir, la quatrième rangée au profit des noirs. La sortie du cavalier en f3 s'imposait. 
+3...Qh4+
+4.Ke2
+4...Qxe4#
