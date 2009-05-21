@@ -80,6 +80,7 @@ a:active {
 
 .gwt-Button, .gwt-ToggleButton {
   width: 30px;
+  height: 30px;
 }
 
 .gwt-Button {
