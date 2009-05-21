@@ -21,7 +21,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
  */
 public class ChessPlayer implements EntryPoint {
 
-	final ChessBoard board = new ChessBoard();
+	final ChessGame board = new ChessGame();
 
 	final ListBox listBox = new ListBox();
 
@@ -112,7 +112,7 @@ public class ChessPlayer implements EntryPoint {
 		};
 	};
 
-	private void setPlayMode(boolean pMode) {
+	private void setPlayMode(boolean pMode) { System.out.println("private void setPlayMode(boolean pMode) {");
 		playMode = pMode;
 		if (playMode) {
 			playTimer.run();
@@ -135,7 +135,7 @@ public class ChessPlayer implements EntryPoint {
 				if (coup.indexOf(".") > 0) {
 					coup = coup.substring(coup.lastIndexOf(".") + 1);
 				}
-				board.doMove(coup);
+				board.parseMove(coup);
 			}
 
 			// Afficher les commentaires

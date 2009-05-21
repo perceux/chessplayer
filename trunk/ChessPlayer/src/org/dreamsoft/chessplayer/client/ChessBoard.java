@@ -2,398 +2,185 @@ package org.dreamsoft.chessplayer.client;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedList;
 
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.Grid;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.ScrollPanel;
-import com.google.gwt.user.client.ui.SourcesTableEvents;
-import com.google.gwt.user.client.ui.TableListener;
+import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
 
-/**
- * Echiquier
- * 
- * @author pcv
- * 
- */
-public class ChessBoard extends Composite {
+import com.google.gwt.user.client.Window;
 
-	public static final int EMPTY = 0;
+public class ChessBoard implements Cloneable, Constantes {
 
-	public static final int WHITE = 1;
+	private final int board[][] = new int[8][8];
 
-	public static final int BLACK = 2;
+	private final int[] kingPos = new int[] { 0, 0, 0 };
 
-	private Grid grid = new Grid(10, 10);
+	private LinkedList<ChessMove> moveHistory = new LinkedList<ChessMove>();
 
-	private int turn = 1;
-
-	private ChessPiece selectPiece = null;
+	private ChessBoardRenderer renderer;
 
 	private ArrayList<int[]> legalMoveForselectPiece = null;
 
-	private ChessPiece kings[] = new ChessPiece[3];
+	private int selectPos = -1;
 
-	private ArrayList<ChessMove> moveHistory = new ArrayList<ChessMove>();
-
-	private HTML moveMessage = new HTML();
-
-	private HTML moveLog = new HTML();
-
-	private HTML turnLabel;
-
-	private boolean isEnglish;
-
-	public ChessBoard() {
-		grid.setCellSpacing(0);
-		initBorderStyle();
-		initCaseStyle();
-		grid.addTableListener(new TableListener() {
-			public void onCellClicked(SourcesTableEvents sender, int y, int x) {
-				ChessPiece selectCase = (ChessPiece) ((Grid) sender).getWidget(y, x);
-				if (selectPiece == null) {
-					if (selectCase != null && selectCase.color == getTurn()) {
-						selectPiece = selectCase;
-						addStyleCase(x, y, "selected");
-						legalMoveForselectPiece = allowedMove(selectPiece);
-						// Changer le style
-						for (Iterator<int[]> iter = legalMoveForselectPiece.iterator(); iter.hasNext();) {
-							int pos[] = (int[]) iter.next();
-							addStyleCase(pos[0], pos[1], "legalmove");
-						}
-					}
-				} else {
-					if (selectCase != selectPiece) {
-						boolean f = false;
-						for (Iterator<int[]> iter = legalMoveForselectPiece.iterator(); iter.hasNext();) {
-							int pos[] = (int[]) iter.next();
-							if (pos[0] == x && pos[1] == y) {
-								f = true;
-								break;
-							}
-						}
-						if (f) {
-							movePiece(selectPiece, x, y);
-							changeTurn();
-						}
-					}
-					selectPiece = null;
-					initCaseStyle();
-					if (ifChess()) {
-						ChessPiece king = kings[getTurn()];
-						addStyleCase(king.x, king.y, "chessed");
-						// On commence par vérifier si le roi peut bouger
-						ArrayList<int[]> kingMove = allowedMove(king);
-						if (kingMove.size() == 0) {
-							// Test du echec et mat!!
-							if (ifMat()) {
-								showMessage((((getOponent() == WHITE) ? "les blancs" : "les noirs") + " gagnent!"));
-							}
-						}
-					} else {
-						if (ifMat()) {
-							showMessage("partie nulle");
-						}
-					}
-					selectPiece = null;
-				}
-			}
-
-		});
-
-		FlexTable table = new FlexTable();
-		table.setSize("400", "400");
-		table.setBorderWidth(1);
-		table.setCellPadding(0);
-		table.setCellSpacing(5);
-		table.setWidget(0, 0, grid);
-		table.getFlexCellFormatter().setRowSpan(0, 0, 2);
-		moveLog.setWordWrap(false);
-		ScrollPanel p1 = new ScrollPanel(moveLog);
-		p1.setWidth("100");
-		p1.setHeight("100%");
-		turnLabel = new HTML();
-		table.setWidget(0, 1, turnLabel);
-		table.getCellFormatter().setHeight(0, 1, "20px");
-		table.setWidget(1, 0, p1);
-		table.getCellFormatter().setHeight(1, 0, "300px");
-		ScrollPanel p2 = new ScrollPanel(moveMessage);
-		p2.setWidth("100%");
-		p2.setHeight("100");
-		table.setWidget(2, 0, p2);
-		table.getFlexCellFormatter().setColSpan(2, 0, 2);
-		initWidget(table);
+	private final int getPiece(int x, int y) {
+		// color + type * 10 + moves * 100
+		return board[x][y];
 	}
 
-	private void changeTurn() {
-		setTurn(1 + (turn % 2));
+	int getColor(int x, int y) {
+		return board[x][y] % 10;
 	}
 
-	private boolean ifMat() {
-		// On doit tester si une autre pièce peut empècher l'echec
-		for (int i = 1; i < 9; i++) {
-			for (int j = 1; j < 9; j++) {
-				ChessPiece piece = (ChessPiece) grid.getWidget(i, j);
-				if (piece != null && piece.color == getTurn() && allowedMove(piece).size() > 0) {
-					return false;
-				}
-			}
-		}
-		return true;
+	private int getType(int x, int y) {
+		return board[x][y] % 100 / 10;
 	}
 
-	public int getTurn() {
-		return turn;
+	private int getMoves(int x, int y) {
+		return board[x][y] / 100;
 	}
 
-	public void setTurn(int turn) {
-		this.turn = turn;
-		turnLabel.setText(getTurn() == WHITE ? "Blanc" : "Noir");
+	private int makePiece(int type, int color) {
+		return type * 10 + color;
 	}
 
-	public int getOponent() {
-		return getTurn() == WHITE ? BLACK : WHITE;
-	}
-
-	private void addStyleCase(int x, int y, String style) {
-		String s = grid.getCellFormatter().getStyleName(y, x).endsWith("1") ? "1" : "2";
-		grid.getCellFormatter().addStyleName(y, x, style + s);
-	}
-
-	private void initBorderStyle() {
-		for (int i = 0; i < 8; i++) {
-			String column = "" + new Character((char) ('a' + i));
-			String row = "" + (i + 1);
-			grid.setBorderWidth(2);
-			grid.setText(0, i + 1, " (" + column + ") ");
-			grid.getCellFormatter().setStyleName(0, i + 1, "enteteCol");
-			grid.getCellFormatter().setWidth(0, i + 1, "34px");
-			grid.setText(9, i + 1, " (" + column + ") ");
-			grid.getCellFormatter().setStyleName(9, i + 1, "enteteCol");
-			grid.setText(8 - i, 0, row);
-			grid.getCellFormatter().setStyleName(8 - i, 0, "enteteRow");
-			grid.setText(8 - i, 9, row);
-			grid.getCellFormatter().setStyleName(8 - i, 9, "enteteRow");
-		}
-	}
-
-	private void initCaseStyle() {
-		int n = 0;
+	public void reset() {
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
-				grid.getCellFormatter().setStyleName(i + 1, j + 1, "case" + (n + 1));
-				n = (n + 1) % 2;
-			}
-			n = (n + 1) % 2;
-		}
-	}
-
-	public void startNewGame() {
-		isEnglish = false;
-		for (int i = 1; i < 8; i++) {
-			for (int j = 1; j < 8; j++) {
-				grid.clearCell(j, i);
+				setPiece(i, j, EMPTY);
 			}
 		}
 		int colors[] = new int[] { WHITE, BLACK };
 		for (int i = 0; i < colors.length; i++) {
 			int color = colors[i];
-			int pawnRow = (color != WHITE) ? 2 : 7;
-			int pieceRow = (color != WHITE) ? 1 : 8;
+			int pawnRow = (color != WHITE) ? 1 : 6;
+			int pieceRow = (color != WHITE) ? 0 : 7;
 			for (int j = 0; j < 8; j++) {
-				movePiece(new ChessPiece(ChessPiece.PAWN, color), j + 1, pawnRow);
+				setPiece(j, pawnRow, makePiece(PAWN, color));
 			}
-			int pieces[] = new int[] { ChessPiece.ROOK, ChessPiece.KNIGHT, ChessPiece.BISHOP, ChessPiece.QUEEN, ChessPiece.KING, ChessPiece.BISHOP, ChessPiece.KNIGHT, ChessPiece.ROOK };
+			int pieces[] = new int[] { ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK };
 			for (int j = 0; j < pieces.length; j++) {
-				ChessPiece tmpPiece = new ChessPiece(pieces[j], color);
-				movePiece(tmpPiece, 1 + j, pieceRow);
-				if (pieces[j] == ChessPiece.KING) {
-					kings[color] = tmpPiece;
-				}
+				setPiece(j, pieceRow, makePiece(pieces[j], color));
 			}
 		}
 
-		// Remise à zero
-		setTurn(WHITE);
-		moveMessage.setHTML("");
-		moveLog.setHTML("");
 		moveHistory.clear();
-		initCaseStyle();
-		selectPiece = null;
 	}
 
-	void movePiece(ChessPiece chessPiece, int x, int y) {
-		if (chessPiece == null)
-			return;
-		grid.remove(chessPiece);
-		grid.clearCell(chessPiece.y, chessPiece.x);
-
-		// Detection du rock pour bouger la tour
-		if (chessPiece.type == ChessPiece.KING && Math.abs(chessPiece.x - x) == 2) {
-			ChessPiece tour = (ChessPiece) grid.getWidget(y, x > chessPiece.x ? 8 : 1);
-			// Deplacement de la tour
-			movePiece(tour, x > chessPiece.x ? x - 1 : x + 1, y);
-		}
-
-		// TODO Detection du "en passant" pour supprimer le pion adverse
-		// if (chessPiece.type == ChessPiece.PAWN && Math.abs(pos[1] - y) >
-		// 1 && Math.abs(pos[0] - x) > 1) {
-		// }
-
-		// Enregistrement du mouvement
-		moveHistory.add(new ChessMove(chessPiece, chessPiece.x, chessPiece.y, (ChessPiece) grid.getWidget(y, x), x, y));
-
-		// Repositionnement de la piece
-		grid.setWidget(y, x, chessPiece);
-		chessPiece.x = x;
-		chessPiece.y = y;
-		chessPiece.nbMove++;
-
-	}
-
-	private int nextCaseColor(int _x, int _y) {
-		ChessPiece ChP = (ChessPiece) grid.getWidget(_y, _x);
-		if (ChP == null) {
-			return EMPTY;
-		} else {
-			return ChP.color;
-		}
-	}
-
-	private void addValid(ChessPiece _chessPiece, ArrayList<int[]> list, int _x, int _y) {
-		if (isOnBoard(_x, _y)) {
-			int targetColor = nextCaseColor(_x, _y);
-			if (targetColor == EMPTY || targetColor != getTurn()) {
-				if (!tryMoveForChess(_chessPiece, _x, _y)) {
-					list.add(new int[] { _x, _y });
-				}
-			}
-		}
-	}
-
-	private boolean tryMoveForChess(ChessPiece chessPiece, int x, int y) {
-		int historySize = moveHistory.size();
-		movePiece(chessPiece, x, y);
-		boolean test = ifChess();
-		// Dépiler la pile des coups historisés...
-		while (moveHistory.size() > 0 && moveHistory.size() > historySize) {
-			ChessMove cm = (ChessMove) moveHistory.get(moveHistory.size() - 1);
-			cm.undoMove(grid);
-			moveHistory.remove(moveHistory.size() - 1);
-		}
-		return test;
-	}
-
-	private ArrayList<int[]> allowedMove(ChessPiece _chessPiece) {
-		int _x = _chessPiece.x;
-		int _y = _chessPiece.y;
+	public ArrayList<int[]> getAllowedMoves(int x, int y) {
 		ArrayList<int[]> list = new ArrayList<int[]>();
-		int oponentColor = getOponent();
+		int type = getType(x, y);
+		int color = getColor(x, y);
+		int oponentColor = (color == WHITE ? BLACK : WHITE);
+		int _x = x;
+		int _y = y;
 
-		switch (_chessPiece.type) {
-		case ChessPiece.PAWN:
-			int sens = (_chessPiece.color == WHITE) ? -1 : 1;
+		switch (type) {
+		case PAWN:
+			int sens = (color == WHITE) ? -1 : 1;
 			int nexty = _y + sens;
 			int nextnexty = _y + 2 * sens;
 
-			if (nextCaseColor(_x, nexty) == EMPTY) {
-				addValid(_chessPiece, list, _x, nexty);
-				if (_chessPiece.nbMove == 0 && nextCaseColor(_x, nextnexty) == EMPTY) {
-					addValid(_chessPiece, list, _x, nextnexty);
+			if (getColor(_x, nexty) == EMPTY) {
+				addValid(x, y, list, _x, nexty);
+				if (getMoves(x, y) == 0 && getColor(_x, nextnexty) == EMPTY) {
+					addValid(x, y, list, _x, nextnexty);
 				}
 			}
-			if (nextCaseColor(_x + 1, nexty) == oponentColor) {
-				addValid(_chessPiece, list, _x + 1, nexty);
+			if (_x < 7 && getColor(_x + 1, nexty) == oponentColor) {
+				addValid(x, y, list, _x + 1, nexty);
 			}
-			if (nextCaseColor(_x - 1, nexty) == oponentColor) {
-				addValid(_chessPiece, list, _x - 1, nexty);
+			if (_x > 0 && getColor(_x - 1, nexty) == oponentColor) {
+				addValid(x, y, list, _x - 1, nexty);
 			}
 
 			break;
-		case ChessPiece.QUEEN:
-			addValidUntilBlocked(_chessPiece, list, 0, 1);
-			addValidUntilBlocked(_chessPiece, list, 0, -1);
-			addValidUntilBlocked(_chessPiece, list, 1, 0);
-			addValidUntilBlocked(_chessPiece, list, -1, 0);
-			addValidUntilBlocked(_chessPiece, list, 1, 1);
-			addValidUntilBlocked(_chessPiece, list, 1, -1);
-			addValidUntilBlocked(_chessPiece, list, -1, 1);
-			addValidUntilBlocked(_chessPiece, list, -1, -1);
+		case QUEEN:
+			addValidUntilBlocked(x, y, list, 0, 1);
+			addValidUntilBlocked(x, y, list, 0, -1);
+			addValidUntilBlocked(x, y, list, 1, 0);
+			addValidUntilBlocked(x, y, list, -1, 0);
+			addValidUntilBlocked(x, y, list, 1, 1);
+			addValidUntilBlocked(x, y, list, 1, -1);
+			addValidUntilBlocked(x, y, list, -1, 1);
+			addValidUntilBlocked(x, y, list, -1, -1);
 
 			break;
-		case ChessPiece.ROOK:
-			addValidUntilBlocked(_chessPiece, list, 0, 1);
-			addValidUntilBlocked(_chessPiece, list, 0, -1);
-			addValidUntilBlocked(_chessPiece, list, 1, 0);
-			addValidUntilBlocked(_chessPiece, list, -1, 0);
+		case ROOK:
+			addValidUntilBlocked(x, y, list, 0, 1);
+			addValidUntilBlocked(x, y, list, 0, -1);
+			addValidUntilBlocked(x, y, list, 1, 0);
+			addValidUntilBlocked(x, y, list, -1, 0);
 
 			break;
-		case ChessPiece.KNIGHT:
+		case KNIGHT:
 			ArrayList<int[]> mvtList = getKnightMovesArrayList(_x, _y);
 			for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
 				int pos[] = (int[]) iter.next();
-				addValid(_chessPiece, list, pos[0], pos[1]);
+				addValid(x, y, list, pos[0], pos[1]);
 			}
 
 			break;
-		case ChessPiece.BISHOP:
+		case BISHOP:
 			// 4 diagonales, cas d'arrêt :
 			// pièce adversaire avec case autorisée
 			// pièce de ma couleur avec case autorisée
 			// sortie de grid
-			addValidUntilBlocked(_chessPiece, list, 1, 1);
-			addValidUntilBlocked(_chessPiece, list, 1, -1);
-			addValidUntilBlocked(_chessPiece, list, -1, 1);
-			addValidUntilBlocked(_chessPiece, list, -1, -1);
+			addValidUntilBlocked(x, y, list, 1, 1);
+			addValidUntilBlocked(x, y, list, 1, -1);
+			addValidUntilBlocked(x, y, list, -1, 1);
+			addValidUntilBlocked(x, y, list, -1, -1);
 			break;
-		case ChessPiece.KING:
-			addValid(_chessPiece, list, _x + 1, _y);
-			addValid(_chessPiece, list, _x + 1, _y + 1);
-			addValid(_chessPiece, list, _x + 1, _y - 1);
-			addValid(_chessPiece, list, _x, _y + 1);
-			addValid(_chessPiece, list, _x, _y - 1);
-			addValid(_chessPiece, list, _x - 1, _y + 1);
-			addValid(_chessPiece, list, _x - 1, _y - 1);
-			addValid(_chessPiece, list, _x - 1, _y);
-			if (kings[getTurn()].nbMove == 0) {
-				ChessPiece king = kings[getTurn()];
-
-				boolean emptyOOO = true;
-				for (int i = 2; i < king.x; i++) {
-					if (grid.getWidget(king.y, i) != null) {
-						emptyOOO = false;
-						break;
-					}
+		case KING:
+			addValid(x, y, list, _x + 1, _y);
+			addValid(x, y, list, _x + 1, _y + 1);
+			addValid(x, y, list, _x + 1, _y - 1);
+			addValid(x, y, list, _x, _y + 1);
+			addValid(x, y, list, _x, _y - 1);
+			addValid(x, y, list, _x - 1, _y + 1);
+			addValid(x, y, list, _x - 1, _y - 1);
+			addValid(x, y, list, _x - 1, _y);
+			// T0,1,2,3,R4,5,6,T7
+			if (getMoves(x, y) == 0) {
+				if (getPiece(1, y) == EMPTY && getPiece(2, y) == EMPTY && getPiece(3, y) == EMPTY && getPiece(0, y) == ROOK * 10 + color && tryMoveForChess(x, y, x - 1, y)) {
+					addValid(x, y, list, x - 2, y); // grand roc
 				}
-				ChessPiece tour1 = (ChessPiece) grid.getWidget(king.y, 1);
-				if (emptyOOO && tour1 != null && tour1.type == ChessPiece.ROOK && tour1.nbMove == 0) {
-					// grand roc
-					addValid(_chessPiece, list, king.x - 2, king.y);
-				}
-
-				boolean emptyOO = true;
-				for (int i = king.x + 1; i < 8; i++) {
-					if (grid.getWidget(king.y, i) != null) {
-						emptyOO = false;
-						break;
-					}
-				}
-				ChessPiece tour2 = (ChessPiece) grid.getWidget(king.y, 8);
-				if (emptyOO && tour2 != null && tour2.type == ChessPiece.ROOK && tour2.nbMove == 0) {
-					// petit roc
-					addValid(_chessPiece, list, king.x + 2, king.y);
+				if (getPiece(5, y) == EMPTY && getPiece(6, y) == EMPTY && getPiece(7, y) == (ROOK * 10 + color) && tryMoveForChess(x, y, x + 1, y)) {
+					addValid(x, y, list, x + 2, y); // petit roc
 				}
 			}
-			// TODO vérifier que le roi n'a pas été mis en échec sur le
-			// chemin
-
 			break;
 		}
 		return list;
+	}
+
+	private boolean isOnBoard(int _x, int _y) {
+		return (_x >= 0 && _x < 8 && _y >= 0 && _y < 8);
+	}
+
+	private void addValidUntilBlocked(int x, int y, ArrayList<int[]> list, int deltax, int deltay) {
+		int dx = x;
+		int dy = y;
+		while (true) {
+			dx += deltax;
+			dy += deltay;
+			if (!isOnBoard(dx, dy))
+				break;
+			addValid(x, y, list, dx, dy);
+			// on s'arrete si on a rencontré une piece!!
+			if (getPiece(dx, dy) != EMPTY)
+				break;
+		}
+	}
+
+	private void addValid(int x, int y, ArrayList<int[]> list, int _x, int _y) {
+		if (isOnBoard(_x, _y)) {
+			int targetColor = getColor(_x, _y);
+			if (targetColor == EMPTY || targetColor != getColor(x, y)) {
+				if (!tryMoveForChess(x, y, _x, _y)) {
+					list.add(new int[] { _x, _y });
+				}
+			}
+		}
 	}
 
 	private ArrayList<int[]> getKnightMovesArrayList(int _x, int _y) {
@@ -409,18 +196,27 @@ public class ChessBoard extends Composite {
 		return mvtList;
 	}
 
-	public boolean ifChess() {
-		ChessPiece king = kings[getTurn()];
-		return checkKingChessLine(king.x, king.y, 0, 1) || checkKingChessLine(king.x, king.y, 0, -1) || checkKingChessLine(king.x, king.y, 1, 0) || checkKingChessLine(king.x, king.y, -1, 0) || checkKingChessLine(king.x, king.y, 1, 1) || checkKingChessLine(king.x, king.y, 1, -1) || checkKingChessLine(king.x, king.y, -1, 1) || checkKingChessLine(king.x, king.y, -1, -1) || checkKingChessKnight(king.x, king.y);
+	private boolean tryMoveForChess(int x, int y, int _x, int _y) {
+		ChessBoard testingBoard = clone();
+		testingBoard.move(x, y, _x, _y);
+		return testingBoard.ifChess(getColor(x, y));
 	}
 
-	private boolean checkKingChessKnight(int _x, int _y) {
+	public boolean ifChess(int color) {
+		int[] kp = getKingXY(color);
+		int i = kp[0];
+		int j = kp[1];
+		return checkKingChessLine(i, j, 0, 1, color) || checkKingChessLine(i, j, 0, -1, color) || checkKingChessLine(i, j, 1, 0, color) || checkKingChessLine(i, j, -1, 0, color)
+				|| checkKingChessLine(i, j, 1, 1, color) || checkKingChessLine(i, j, 1, -1, color) || checkKingChessLine(i, j, -1, 1, color) || checkKingChessLine(i, j, -1, -1, color)
+				|| checkKingChessKnight(i, j, color);
+	}
+
+	private boolean checkKingChessKnight(int _x, int _y, int color) {
 		ArrayList<int[]> mvtList = getKnightMovesArrayList(_x, _y);
 		for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
 			int pos[] = (int[]) iter.next();
 			if (isOnBoard(pos[0], pos[1])) {
-				ChessPiece pieceToCheck = (ChessPiece) grid.getWidget(pos[1], pos[0]);
-				if (pieceToCheck != null && pieceToCheck.color == getOponent() && pieceToCheck.type == ChessPiece.KNIGHT) {
+				if (getType(pos[0], pos[1]) == KNIGHT && getColor(pos[0], pos[1]) != color) {
 					return true;
 				}
 			}
@@ -428,7 +224,7 @@ public class ChessBoard extends Composite {
 		return false;
 	}
 
-	private boolean checkKingChessLine(int x, int y, int deltax, int deltay) {
+	private boolean checkKingChessLine(int x, int y, int deltax, int deltay, int color) {
 		int dx = x;
 		int dy = y;
 		boolean first = true;
@@ -438,19 +234,18 @@ public class ChessBoard extends Composite {
 			if (!isOnBoard(dx, dy))
 				break;
 			// on s'arrete si on a rencontré une piece!!
-			ChessPiece pieceToCheck = (ChessPiece) grid.getWidget(dy, dx);
-			if (pieceToCheck != null)
-				if (pieceToCheck.color == getOponent()) {
-					switch (pieceToCheck.type) {
-					case ChessPiece.PAWN:
-						return (first && (dx * dy != 0) && ((dy > y && getTurn() == BLACK) || (dy < y && getTurn() == WHITE)));
-					case ChessPiece.KING:
+			if (getPiece(dx, dy) != EMPTY)
+				if (getColor(dx, dy) != color) {
+					switch (getType(dx, dy)) {
+					case PAWN:
+						return (first && (deltax * deltay != 0) && ((dy > y && color == BLACK) || (dy < y && color == WHITE)));
+					case KING:
 						return first;
-					case ChessPiece.BISHOP:
+					case BISHOP:
 						return (deltax * deltay != 0);
-					case ChessPiece.QUEEN:
+					case QUEEN:
 						return true;
-					case ChessPiece.ROOK:
+					case ROOK:
 						return (deltax * deltay == 0);
 					default:
 						return false;
@@ -463,114 +258,201 @@ public class ChessBoard extends Composite {
 		return false;
 	}
 
-	private void addValidUntilBlocked(ChessPiece _chessPiece, ArrayList<int[]> list, int deltax, int deltay) {
-		int dx = _chessPiece.x;
-		int dy = _chessPiece.y;
-		while (true) {
-			dx += deltax;
-			dy += deltay;
-			if (!isOnBoard(dx, dy))
-				break;
-			addValid(_chessPiece, list, dx, dy);
-			// on s'arrete si on a rencontré une piece!!
-			if (grid.getWidget(dy, dx) instanceof ChessPiece)
-				break;
-		}
+	public boolean moveTo(int type, int color, int row_start, int col_start, int row_end, int col_end) {
+		int[] foundPiece = null;
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+				if (getColor(x, y) == color && getType(x, y) == type) {
+					// Verifie les indices de position de depart
+					if (col_start >= 0 && x != col_start) {
+						continue;
+					}
+					if (row_start < 8 && y != row_start) {
+						continue;
+					}
 
-	}
-
-	public boolean isOnBoard(int _x, int _y) {
-		return (_x > 0 && _x < 9 && _y > 0 && _y < 9);
-	}
-
-	/**
-	 * Effectue un déplacement de partie
-	 * 
-	 * @param text
-	 */
-	public void doMove(String text) {
-		String pat = "([" + (ChessPiece.PIECE_LETTERS_ENGLISH + ChessPiece.PIECE_LETTERS).replaceAll(" ", "") + "]{0,1})([a-h]{0,1})([1-8]{0,1})[x]{0,1}([a-h])([1-8])[\\+#]{0,1}";
-
-		// TODO traiter l'exception du petit et grand rock "O-O" et "O-O-O"
-		if (text.matches(pat)) {
-			ArrayList<?> matches = new ArrayList<Object>();
-			regexpMatches(pat, "", text, matches);
-			String typePiece = (String) matches.get(1);
-
-			// System anglophone " TCFRD" <=> " RNBKQ"
-			int type = 1 + ChessPiece.PIECE_LETTERS.indexOf(typePiece);
-			int typeEnglish = 1 + ChessPiece.PIECE_LETTERS_ENGLISH.indexOf(typePiece);
-			if (isEnglish) {
-				type = typeEnglish;
-			} else {
-				if (typeEnglish > 1 && type != ChessPiece.KING) {
-					isEnglish = true;
-					type = typeEnglish;
-				}
-			}
-			if (type < 1) {
-				type = ChessPiece.PAWN;
-			}
-
-			int col_start = " abcdefgh".indexOf((String) matches.get(2));
-			int row_start = 9 - Integer.parseInt("0" + (String) matches.get(3));
-			int col_end = " abcdefgh".indexOf((String) matches.get(4));
-			int row_end = 9 - Integer.parseInt("0" + (String) matches.get(5));
-
-			ChessPiece foundPiece = null;
-			for (int x = 1; x < 9; x++) {
-				for (int y = 1; y < 9; y++) {
-					ChessPiece pieceToCheck = (ChessPiece) grid.getWidget(y, x);
-					if (pieceToCheck != null && pieceToCheck.color == getTurn() && pieceToCheck.type == type) {
-						// Verifie les indices de position de depart
-						if (col_start > 0 && pieceToCheck.x != col_start) {
-							continue;
-						}
-						if (row_start < 9 && pieceToCheck.y != row_start) {
-							continue;
-						}
-
-						// Verifie la destination
-						ArrayList<int[]> allowedMoves = allowedMove(pieceToCheck);
-						for (Iterator<int[]> iter = allowedMoves.iterator(); iter.hasNext();) {
-							int[] pos = (int[]) iter.next();
-							if (pos[0] == col_end && pos[1] == row_end) {
-								foundPiece = pieceToCheck;
-								break;
-							}
+					// Verifie la destination
+					ArrayList<int[]> allowedMoves = getAllowedMoves(x, y);
+					for (Iterator<int[]> iter = allowedMoves.iterator(); iter.hasNext();) {
+						int[] pos = (int[]) iter.next();
+						if (pos[0] == col_end && pos[1] == row_end) {
+							foundPiece = new int[] { x, y };
+							break;
 						}
 					}
-					if (foundPiece != null)
-						break;
 				}
 				if (foundPiece != null)
 					break;
 			}
-			if (foundPiece != null) {
-				movePiece(foundPiece, col_end, row_end);
-				moveLog.setHTML(moveLog.getHTML() + (((getTurn() == BLACK) ? "-" : "<br>") + text));
-				changeTurn();
-			} else {
-				showMessage("Coup impossible");
+			if (foundPiece != null)
+				break;
+		}
+		if (foundPiece == null)
+			return false;
+
+		move(foundPiece[0], foundPiece[1], col_end, row_end);
+		return true;
+	}
+
+	public void move(int x, int y, int _x, int _y) {
+		int piece = getPiece(x, y);
+		if (piece != EMPTY) {
+			// Enregistrement du mouvement
+			// moveHistory.push(new QuickChessMove(getPiece(x, y), x, y,
+			// getPiece(_x, _y), _x, _y));
+
+			// Detection du rock pour bouger la tour
+			if (getType(x, y) == KING && Math.abs(x - _x) == 2) {
+				// Deplacement de la tour
+				move(_x > x ? 7 : 0, _y, _x > x ? _x - 1 : _x + 1, _y);
 			}
+
+			// Detection du pion en fin de ligne pour promote
+			if (getType(x, y) == PAWN && (_y == 0 || _y == 7)) {
+				if (renderer != null) {
+					renderer.setPromote(_x, _y, getColor(x, y));
+				} else {
+					piece = QUEEN * 10 + piece % 10;
+				}
+			}
+
+			// TODO Detection du "en passant" pour supprimer le pion adverse
+			// if (type == PAWN && Math.abs(pos[1] - y) >
+			// 1 && Math.abs(pos[0] - x) > 1) {
+			// }
+
+			setPiece(_x, _y, piece + 100); // moves + 1
+			setPiece(x, y, EMPTY);
+		} else {
+			System.out.println("move empty " + x + "," + y);
 		}
 	}
 
-	private native void regexpMatches(String pattern, String flags, String text, List<?> matches)/*-{
-		var regExp = new RegExp(pattern, flags);
-		var result = text.match(regExp);
-		if (result == null) return;
-		for (var i=0;i<result.length;i++)
-		matches.@java.util.ArrayList::add(Ljava/lang/Object;)(result[i]);
-	}-*/;
-
-	/**
-	 * Affiche un commentaire sur le coup effectué
-	 * 
-	 * @param text
-	 */
-	public void showMessage(String text) {
-		moveMessage.setText(text);
+	public boolean ifMat(int color) {
+		// On doit tester si une autre pièce peut empècher l'echec
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				if (getColor(i, j) == color && getAllowedMoves(i, j).size() > 0) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
+	public void undo() {
+		/*
+		 * QuickChessMove move = moveHistory.pop(); setPiece(move.toX, move.toY,
+		 * move.toPiece); setPiece(move.fromX, move.fromY, move.fromPiece);
+		 */
+	}
+
+	protected void setPiece(int x, int y, int value) {
+		if (!isOnBoard(x, y)) {
+			return;
+		}
+		if (value % 100 / 10 == KING) {
+			kingPos[value % 10] = x + y * 10;
+		}
+		board[x][y] = value;
+		if (renderer != null)
+			renderer.render(x, y, value);
+	}
+
+	public int[] getKingXY(int color) {
+		int kp = kingPos[color];
+		return new int[] { kp % 10, kp / 10 };
+	}
+
+	protected final ChessBoard clone() {
+		final ChessBoard cloned = new ChessBoard();
+		for (int i = 0; i < 8; i++) {
+			System.arraycopy(this.board[i], 0, cloned.board[i], 0, board[i].length);
+		}
+		System.arraycopy(this.kingPos, 0, cloned.kingPos, 0, kingPos.length);
+		return cloned;
+	}
+
+	public void setRenderer(ChessBoardRenderer quickChessBoardRenderer) {
+		this.renderer = quickChessBoardRenderer;
+	}
+
+	public ChessMove getMove(int x, int y, int i, int j) {
+		return new ChessMove(getPiece(x, y), x, y, getPiece(i, j), i, j);
+	}
+
+	public ArrayList<ChessMove> getAllMoves(int color) {
+		ArrayList<ChessMove> allMoves = new ArrayList<ChessMove>();
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				if (getColor(i, j) == color) {
+					ArrayList<int[]> potentialMoves = new ArrayList<int[]>();
+					try {
+						potentialMoves = getAllowedMoves(i, j);
+					} catch (Exception e) {
+						e.printStackTrace();
+						Window.alert("_____________ i,j=" + i + "," + j);
+						System.out.println("_____________ piece i,j=" + getPiece(i, j));
+					}
+					for (Iterator<int[]> iterator = potentialMoves.iterator(); iterator.hasNext();) {
+						int[] toXY = iterator.next();
+						allMoves.add(getMove(i, j, toXY[0], toXY[1]));
+					}
+				}
+			}
+		}
+		return allMoves;
+	}
+
+	public void move(ChessMove quickChessMove) {
+		move(quickChessMove.fromX, quickChessMove.fromY, quickChessMove.toX, quickChessMove.toY);
+	}
+
+	public void select(int x, int y) {
+		selectPos = x + y * 10;
+		if (renderer != null) {
+			renderer.highlight(x, y, HighlightMode.SELECTED);
+			legalMoveForselectPiece = getAllowedMoves(x, y);
+			// Changer le style
+			for (Iterator<int[]> iter = legalMoveForselectPiece.iterator(); iter.hasNext();) {
+				int pos[] = (int[]) iter.next();
+				renderer.highlight(pos[0], pos[1], HighlightMode.LEGAL);
+			}
+		}
+
+	}
+
+	public boolean moveSelectedPiece(int x, int y) {
+		boolean f = false;
+		if (selectPos != x + y * 10) {
+			for (Iterator<int[]> iter = legalMoveForselectPiece.iterator(); iter.hasNext();) {
+				int pos[] = (int[]) iter.next();
+				if (pos[0] == x && pos[1] == y) {
+					f = true;
+					break;
+				}
+			}
+			if (f) {
+				move(selectPos % 10, selectPos / 10, x, y);
+			}
+		}
+		return f;
+	}
+
+	public int getSelectedPos() {
+		return selectPos;
+	}
+
+	public void unselect() {
+		selectPos = -1;
+		if (renderer != null) {
+			renderer.clearSelection();
+		}
+	}
+
+
+
+	public void setPromote(int x, int y, int piece) {
+		setPiece(x, y, piece);
+	}
 }
