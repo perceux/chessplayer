@@ -298,8 +298,7 @@ public class ChessBoard implements Cloneable, Constantes {
 		int piece = getPiece(x, y);
 		if (piece != EMPTY) {
 			// Enregistrement du mouvement
-			// moveHistory.push(new QuickChessMove(getPiece(x, y), x, y,
-			// getPiece(_x, _y), _x, _y));
+			moveHistory.push(new ChessMove(getPiece(x, y), x, y, getPiece(_x, _y), _x, _y));
 
 			// Detection du rock pour bouger la tour
 			if (getType(x, y) == KING && Math.abs(x - _x) == 2) {

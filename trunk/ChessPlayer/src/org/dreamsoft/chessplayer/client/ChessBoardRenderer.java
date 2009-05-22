@@ -132,7 +132,6 @@ public class ChessBoardRenderer implements Constantes {
 	}
 
 	protected void onPromoteSelected(int x, int y, int piece) {
-		
 	}
 
 
