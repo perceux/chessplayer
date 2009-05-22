@@ -203,9 +203,9 @@ public class ChessGame extends Composite implements Constantes {
 				type = PAWN;
 			}
 
-			int col_start = "abcdefgh".indexOf((String) matches.get(2));
+			int col_start = -1 + " abcdefgh".indexOf((String) matches.get(2));
 			int row_start = 8 - Integer.parseInt("0" + (String) matches.get(3));
-			int col_end = "abcdefgh".indexOf((String) matches.get(4));
+			int col_end = -1 + " abcdefgh".indexOf((String) matches.get(4));
 			int row_end = 8 - Integer.parseInt("0" + (String) matches.get(5));
 
 			if (qcb.moveTo(type, getTurn(), row_start, col_start, row_end, col_end)) {

@@ -112,7 +112,7 @@ public class ChessPlayer implements EntryPoint {
 		};
 	};
 
-	private void setPlayMode(boolean pMode) { System.out.println("private void setPlayMode(boolean pMode) {");
+	private void setPlayMode(boolean pMode) {
 		playMode = pMode;
 		if (playMode) {
 			playTimer.run();
