@@ -15,10 +15,8 @@ public class ChessPlayer implements EntryPoint {
 	 * This is the entry point method.
 	 */
 	public void onModuleLoad() {
-
 		chessGame.startNewGame();
 		VerticalPanel vpanel = new VerticalPanel();
-//		vpanel.add(panel);
 		vpanel.add(chessGame);
 		RootPanel.get().add(vpanel);
 	}
