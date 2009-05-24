@@ -11,6 +11,9 @@ import org.dreamsoft.chessplayer.client.ChessBoardUtils;
 import org.dreamsoft.chessplayer.client.ChessMove;
 
 import com.google.gwt.user.client.Random;
+import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.TextBox;
 
 /**
  * This class implements a naive minimax optimizing chessplayer.
@@ -26,7 +29,7 @@ public class MinimaxProvider extends Provider {
 	 * The depth to which the player will search the game tree for possible
 	 * solutions.
 	 */
-	private int maxDepth;
+	private int maxDepth = 1;
 
 	private int color;
 
@@ -40,7 +43,7 @@ public class MinimaxProvider extends Provider {
 		initializePossibilities();
 		noOfEvaluations = 0;
 		this.setColor(color);
-		miniMax(getChessBoard(), maxDepth, true, color);
+		miniMax(getChessBoard(), getMaxDepth(), true, color);
 
 		// Extracting the result from the minimax algorithm
 		// (a bit cumbersome, but thats the way it is done.
@@ -49,6 +52,17 @@ public class MinimaxProvider extends Provider {
 			result = possibilities.get(Random.nextInt(possibilities.size() - 1));
 		}
 
+		return result;
+	}
+
+	private int getMaxDepth() {
+		String depth = depthTextBox.getValue();
+		int result = maxDepth;
+		try {
+			result = Integer.parseInt(depth);
+		} catch (Exception e) {
+			depthTextBox.setValue("");
+		}
 		return result;
 	}
 
@@ -67,7 +81,6 @@ public class MinimaxProvider extends Provider {
 	 * Create a new instance of a player with a specific color..
 	 */
 	public MinimaxProvider() {
-		maxDepth = 3;
 	}
 
 	/**
@@ -159,7 +172,7 @@ public class MinimaxProvider extends Provider {
 		} else if (depth == 0) {
 			// Count number evaluations to measure performance.
 			noOfEvaluations += 1;
-			
+			debug.setText("noOfEvaluations=" + noOfEvaluations);
 			// We are always evaluating with our color in mind.
 			// the minimaxing will figure out who should benefit.
 			return evaluate(b, getColor());
@@ -332,6 +345,22 @@ public class MinimaxProvider extends Provider {
 	@Override
 	public String getShortName() {
 		return "Computer";
+	}
+
+	TextBox depthTextBox = new TextBox();
+
+	HTML debug = new HTML();
+
+	@Override
+	public HorizontalPanel getToolbarPanel() {
+		if (toolbarPanel == null) {
+			toolbarPanel = new HorizontalPanel();
+			toolbarPanel.add(new HTML("Depth:"));
+			toolbarPanel.add(depthTextBox);
+			toolbarPanel.add(new HTML("Test:"));
+			toolbarPanel.add(debug);
+		}
+		return toolbarPanel;
 	}
 
 }
