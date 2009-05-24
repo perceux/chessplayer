@@ -4,7 +4,7 @@ import java.util.LinkedList;
 
 public class ChessBoard implements Cloneable, Constantes {
 
-	private final int board[][] = new int[8][8];
+	private final int board[] = new int[64];
 
 	private final int[] kingPos = new int[] { 0, 0, 0 };
 
@@ -14,19 +14,19 @@ public class ChessBoard implements Cloneable, Constantes {
 
 	public final int getPiece(int x, int y) {
 		// color + type * 10 + moves * 100
-		return board[x][y];
+		return board[x + y * 8];
 	}
 
 	public int getColor(int x, int y) {
-		return board[x][y] % 10;
+		return board[x + y * 8] % 10;
 	}
 
 	public int getType(int x, int y) {
-		return board[x][y] % 100 / 10;
+		return board[x + y * 8] % 100 / 10;
 	}
 
 	int getMoves(int x, int y) {
-		return board[x][y] / 100;
+		return board[x + y * 8] / 100;
 	}
 
 	private int makePiece(int type, int color) {
@@ -110,7 +110,7 @@ public class ChessBoard implements Cloneable, Constantes {
 		if (value % 100 / 10 == KING) {
 			kingPos[value % 10] = x + y * 10;
 		}
-		board[x][y] = value;
+		board[x + y * 8] = value;
 		if (renderer != null)
 			renderer.render(x, y, value);
 	}
@@ -122,15 +122,13 @@ public class ChessBoard implements Cloneable, Constantes {
 
 	public final ChessBoard clone() {
 		final ChessBoard cloned = new ChessBoard();
-		for (int i = 0; i < 8; i++) {
-			System.arraycopy(this.board[i], 0, cloned.board[i], 0, board[i].length);
-		}
+		System.arraycopy(this.board, 0, cloned.board, 0, board.length);
 		System.arraycopy(this.kingPos, 0, cloned.kingPos, 0, kingPos.length);
 		return cloned;
 	}
 
-	public void setRenderer(ChessBoardRenderer quickChessBoardRenderer) {
-		this.renderer = quickChessBoardRenderer;
+	public void setRenderer(ChessBoardRenderer renderer) {
+		this.renderer = renderer;
 	}
 
 	public ChessMove getMove(int x, int y, int i, int j) {
@@ -156,6 +154,24 @@ public class ChessBoard implements Cloneable, Constantes {
 				return false;
 		}
 		return true;
+	}
+
+	/**
+	 * public static final int PAWN = 1; public static final int ROOK = 2;
+	 * public static final int KNIGHT = 3; public static final int BISHOP = 4;
+	 * public static final int KING = 5; public static final int QUEEN = 6;
+	 */
+	public static int pieceValue[] = { 0, 1, 5, 3, 3, 1, 10 };
+
+	public int[] getScores() {
+		int result[] = new int[] { 0, 0 };
+		int tmp = 0;
+		for (int i = 0; i < 64; i++) {
+			tmp = board[i];
+			if (tmp > 0)
+				result[(tmp % 10) - 1] += pieceValue[(tmp % 100) / 10];
+		}
+		return result;
 	}
 
 }

@@ -1,16 +1,17 @@
 package org.dreamsoft.chessplayer.client.provider;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.ArrayList;
 import java.util.Vector;
 
 import org.dreamsoft.chessplayer.client.ChessBoard;
 import org.dreamsoft.chessplayer.client.ChessBoardUtils;
 import org.dreamsoft.chessplayer.client.ChessMove;
+import org.dreamsoft.chessplayer.client.provider.ProviderListener.GameCommand;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Random;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.TextBox;
@@ -40,7 +41,7 @@ public class MinimaxProvider extends Provider {
 	 */
 	@Override
 	public ChessMove getNextMove(int color) {
-		initializePossibilities();
+		possibilities.clear();
 		noOfEvaluations = 0;
 		this.setColor(color);
 		miniMax(getChessBoard(), getMaxDepth(), true, color);
@@ -61,7 +62,7 @@ public class MinimaxProvider extends Provider {
 		try {
 			result = Integer.parseInt(depth);
 		} catch (Exception e) {
-			depthTextBox.setValue("");
+			depthTextBox.setValue("" + maxDepth);
 		}
 		return result;
 	}
@@ -69,8 +70,8 @@ public class MinimaxProvider extends Provider {
 	/**
 	 * Capturing moves considered during the top level evaluations.
 	 */
-	private Map<ChessMove, Double> capturingMovesConsidered = new HashMap<ChessMove, Double>();
-
+	// private Map<ChessMove, Double> capturingMovesConsidered = new
+	// HashMap<ChessMove, Double>();
 	/**
 	 * The number of evaluations that were performed to find the move were
 	 * selecting now.
@@ -86,44 +87,7 @@ public class MinimaxProvider extends Provider {
 	/**
 	 * The final maximizing move found when searching.
 	 */
-	private Vector<ChessMove> possibilities = null;
-
-	/**
-	 * A map the moves discarded by the top level evaluation.
-	 */
-	private Map<Double, Collection<ChessMove>> discardedMaximizingMoves = new TreeMap<Double, Collection<ChessMove>>();
-
-	/**
-	 * Set the maximizing moves set to be a new emty collection.
-	 * 
-	 */
-	private void initializePossibilities() {
-		possibilities = new Vector<ChessMove>();
-	}
-
-	/**
-	 * Generate moves for this players color. These are moves that will be
-	 * maximized.
-	 * 
-	 * @param b
-	 *            the board.
-	 * @return a set of legal moves for this player.
-	 */
-	private final Collection<ChessMove> getMaximizingMoves(final ChessBoard b, final int color) {
-		return ChessBoardUtils.getAllMoves(b, color);
-	}
-
-	/**
-	 * Generate moves for this players oposition. These are moves that will be
-	 * minimized.
-	 * 
-	 * @param b
-	 *            the board.
-	 * @return a set of legal moves for this players oposition.
-	 */
-	private final Collection<ChessMove> getMinimizingMoves(final ChessBoard b, final int color) {
-		return ChessBoardUtils.getAllMoves(b, 3 - color);
-	}
+	private Vector<ChessMove> possibilities = new Vector<ChessMove>();
 
 	/**
 	 * The minimax algorithm, instrumented to report its final maximizing move.
@@ -179,7 +143,8 @@ public class MinimaxProvider extends Provider {
 		} else if (!doMaximize) {
 			// Find minimizing move
 			double a = POS_INFTY;
-			for (ChessMove m : getMinimizingMoves(b, color)) {
+			ArrayList<ChessMove> moves = ChessBoardUtils.getAllMoves(b, 3 - color);
+			for (ChessMove m : moves) {
 				ChessBoard bam = ChessBoardUtils.getBoardAfterMove(b, m);
 				double c = miniMax(bam, depth - 1, !doMaximize, color);
 				if (c < a) {
@@ -190,22 +155,16 @@ public class MinimaxProvider extends Provider {
 		} else {
 			// Find maximizing move
 			double a = NEG_INFTY;
-			Collection<ChessMove> moves = getMaximizingMoves(b, color);
+			ArrayList<ChessMove> moves = ChessBoardUtils.getAllMoves(b, color);
 
 			for (ChessMove m : moves) {
 				ChessBoard bam = ChessBoardUtils.getBoardAfterMove(b, m);
 				double c = miniMax(bam, depth - 1, !doMaximize, color);
-				if (depth == maxDepth && (m.toPiece != EMPTY && m.toPiece % 10 != m.fromPiece % 10)) {
-					capturingMovesConsidered.put(m, c);
-				}
 				if (a < c) {
 					// If this is the top level iteration through moves,
 					// then we shuld collect all the maximizing moves.
 					if (depth == maxDepth) {
-						if (!possibilities.isEmpty()) {
-							discardedMaximizingMoves.put(a, possibilities);
-						}
-						initializePossibilities();
+						possibilities.clear();
 						possibilities.add(m);
 					}
 					a = c;
@@ -226,63 +185,6 @@ public class MinimaxProvider extends Provider {
 	}
 
 	/**
-	 * The value for a pawn.
-	 */
-	public static final int PAWN_VAL = 1;
-
-	/**
-	 * The value for a rook.
-	 */
-	public static final int ROOK_VAL = 5;
-
-	/**
-	 * The value for a rook.
-	 */
-	public static final int KNIGHT_VAL = 3;
-
-	/**
-	 * The value of a knight.
-	 */
-	public static final int BISHOP_VAL = 3;
-
-	/**
-	 * The value of a queen.
-	 */
-	public static final int QUEEN_VAL = 10;
-
-	/**
-	 * The value of a king.
-	 */
-	public static final int KING_VAL = 1;
-
-	/**
-	 * Assign a double value to each type of piece, use that to evaluate the
-	 * strength of a board XXX. This is an -extremely- crude method of strength
-	 * evaluation, almost impossibly stupid.
-	 * 
-	 * @param p
-	 *            the piece go evaluate
-	 * @return the worth of the piece
-	 */
-	private double getValue(final int p) {
-		switch (p % 100 / 10) {
-		case PAWN:
-			return PAWN_VAL;
-		case ROOK:
-			return ROOK_VAL;
-		case KNIGHT:
-			return KNIGHT_VAL;
-		case BISHOP:
-			return BISHOP_VAL;
-		case QUEEN:
-			return QUEEN_VAL;
-		case KING:
-			return KNIGHT_VAL;
-		}
-		return 0;
-	}
-
-	/**
 	 * Evaluate a board as seen from the perspective of a color.
 	 * 
 	 * @param b
@@ -292,27 +194,12 @@ public class MinimaxProvider extends Provider {
 	 * @return the combined goodness.
 	 */
 	public double evaluate(final ChessBoard b, final int c) {
-		int whites = 0;
-		int blacks = 0;
-		for (int x = 0; x < 8; x++) {
-			for (int y = 0; y < 8; y++) {
-				int p = b.getPiece(x, y);
-				if (p != EMPTY) {
-					if (p % 10 == WHITE) {
-						whites += getValue(p);
-					} else {
-						blacks += getValue(p);
-					}
-				}
-			}
-		}
-		double goodness = 0;
+		int scores[] = b.getScores();
 		if (c == BLACK) {
-			goodness = calculateGoodness(blacks, whites);
+			return calculateGoodness(scores[1], scores[0]);
 		} else {
-			goodness = calculateGoodness(whites, blacks);
+			return calculateGoodness(scores[0], scores[1]);
 		}
-		return goodness;
 	}
 
 	@Override
@@ -357,7 +244,15 @@ public class MinimaxProvider extends Provider {
 			toolbarPanel = new HorizontalPanel();
 			toolbarPanel.add(new HTML("Depth:"));
 			toolbarPanel.add(depthTextBox);
-			toolbarPanel.add(new HTML("Test:"));
+
+			Button buttonPlay = new Button("&gt;", new ClickHandler() {
+				public void onClick(ClickEvent event) {
+					fireGameCommand(GameCommand.PLAY);
+				}
+			});
+			toolbarPanel.add(buttonPlay);
+
+			toolbarPanel.add(new HTML(" Debug:"));
 			toolbarPanel.add(debug);
 		}
 		return toolbarPanel;
