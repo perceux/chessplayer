@@ -67,7 +67,7 @@ public class MinimaxProvider extends Provider {
 	 * Create a new instance of a player with a specific color..
 	 */
 	public MinimaxProvider() {
-		maxDepth = 4;
+		maxDepth = 3;
 	}
 
 	/**
@@ -159,7 +159,7 @@ public class MinimaxProvider extends Provider {
 		} else if (depth == 0) {
 			// Count number evaluations to measure performance.
 			noOfEvaluations += 1;
-
+			
 			// We are always evaluating with our color in mind.
 			// the minimaxing will figure out who should benefit.
 			return evaluate(b, getColor());
@@ -259,6 +259,8 @@ public class MinimaxProvider extends Provider {
 			return ROOK_VAL;
 		case KNIGHT:
 			return KNIGHT_VAL;
+		case BISHOP:
+			return BISHOP_VAL;
 		case QUEEN:
 			return QUEEN_VAL;
 		case KING:
