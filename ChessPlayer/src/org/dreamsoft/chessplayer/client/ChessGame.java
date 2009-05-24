@@ -178,10 +178,12 @@ public class ChessGame extends Composite implements Constantes {
 			break;
 		case MAT:
 			renderer.highlight(kp1[0], kp1[1], HighlightMode.MAT);
+			showMessage("MAT!!");
 			break;
 		case PAT:
 			renderer.highlight(kp1[0], kp1[1], HighlightMode.PAT);
 			renderer.highlight(kp2[0], kp2[1], HighlightMode.PAT);
+			showMessage("PAT!!");
 			break;
 		}
 	}
@@ -201,10 +203,10 @@ public class ChessGame extends Composite implements Constantes {
 
 	public void startNewGame() {
 		// Remise à zero
-		setTurn(WHITE);
 		moveMessage.setHTML("");
 		moveLog.setHTML("");
 		board.reset();
+		setTurn(WHITE);
 	}
 
 }
