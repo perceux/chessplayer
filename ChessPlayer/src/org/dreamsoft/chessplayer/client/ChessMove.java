@@ -15,8 +15,6 @@ public class ChessMove {
 
 	public String text = "";
 
-	public double note = 0.0;
-
 	public ChessMove(int fromPiece, int x, int y, int toPiece, int toX, int toY) {
 		this.fromPiece = fromPiece;
 		this.toPiece = toPiece;
@@ -28,7 +26,7 @@ public class ChessMove {
 
 	@Override
 	public String toString() {
-		return "{" + text + " <" + note + "> : " + fromPiece + "(" + fromX + "," + fromY + ")" + " " + toPiece + "(" + toX + "," + toY + ") }";
+		return "{" + text + " : " + fromPiece + "(" + fromX + "," + fromY + ")" + " " + toPiece + "(" + toX + "," + toY + ") }";
 	}
 
 }

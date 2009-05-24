@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.dreamsoft.chessplayer.client.ChessBoardUtils;
 import org.dreamsoft.chessplayer.client.ChessMove;
 import org.dreamsoft.chessplayer.client.provider.ProviderListener.GameCommand;
 
@@ -209,7 +210,7 @@ public class FileProvider extends Provider {
 				int xend = -1 + " abcdefgh".indexOf((String) matches.get(4));
 				int yend = 8 - Integer.parseInt("0" + (String) matches.get(5));
 
-				int[] startPos = chessBoard.searchPieceXY(type, turnColor, ystart, xstart, yend, xend);
+				int[] startPos = ChessBoardUtils.searchPieceXY(chessBoard,type, turnColor, ystart, xstart, yend, xend);
 				if (startPos != null) {
 					ChessMove move = chessBoard.getMove(startPos[0], startPos[1], xend, yend);
 					move.text = text;
@@ -218,5 +219,10 @@ public class FileProvider extends Provider {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public String getShortName() {
+		return "File";
 	}
 }

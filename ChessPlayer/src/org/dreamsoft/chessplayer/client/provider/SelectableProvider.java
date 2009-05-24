@@ -12,26 +12,29 @@ public class SelectableProvider extends Provider {
 
 	protected ListBox listBox = new ListBox(false);
 
-	protected Provider provider = new HumanProvider();
+	protected Provider provider = null;
 
-	protected Provider[] providers = new Provider[] { new HumanProvider(), new RandomProvider(), new FileProvider(), new ComputerProvider() };
+	protected Provider[] providers = new Provider[] { new HumanProvider(), new RandomProvider(), new FileProvider(), new MinimaxProvider() };
 
 	public SelectableProvider(final ProviderListener providerListener) {
-		listBox.addItem("Human");
-		listBox.addItem("Random");
-		listBox.addItem("File");
-		listBox.addItem("Computer");
 		for (int i = 0; i < providers.length; i++) {
 			Provider p = providers[i];
+			listBox.addItem(p.getShortName());
 			p.addProviderListener(providerListener);
+			if (provider == null)
+				provider = p;
 		}
 		addProviderListener(providerListener);
 		listBox.addChangeHandler(new ChangeHandler() {
 			public void onChange(ChangeEvent event) {
 				provider = providers[listBox.getSelectedIndex()];
-				fireProviderChange();
+				fireProviderChange(provider);
 			}
 		});
+	}
+
+	public void setSelectedIndex(int index) {
+		listBox.setSelectedIndex(index);
 	}
 
 	public Provider getProvider() {
@@ -40,18 +43,13 @@ public class SelectableProvider extends Provider {
 
 	public void setProvider(Provider provider) {
 		this.provider = provider;
-		int i = -1;
-		if (provider instanceof HumanProvider) {
-			i = 0;
-		} else if (provider instanceof RandomProvider) {
-			i = 1;
-		} else if (provider instanceof FileProvider) {
-			i = 2;
-		} else if (provider instanceof ComputerProvider) {
-			i = 3;
-		}
-		if (i != -1) {
-			listBox.setSelectedIndex(i);
+		for (int j = 0; j < providers.length; j++) {
+			Provider p = providers[j];
+			if (provider.getClass().equals(p.getClass())) {
+				providers[j] = p;
+				p.setChessBoard(chessBoard);
+				listBox.setSelectedIndex(j);
+			}
 		}
 	}
 
@@ -96,5 +94,10 @@ public class SelectableProvider extends Provider {
 	@Override
 	public boolean isAuto() {
 		return provider.isAuto();
+	}
+
+	@Override
+	public String getShortName() {
+		return provider.getShortName();
 	}
 }

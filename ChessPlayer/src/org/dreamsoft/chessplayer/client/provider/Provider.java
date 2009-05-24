@@ -21,7 +21,7 @@ public abstract class Provider implements Constantes {
 	private ArrayList<ProviderListener> providerListeners;
 
 	protected String message;
-	
+
 	private boolean auto = false;
 
 	abstract public ChessMove getNextMove(int color);
@@ -61,10 +61,10 @@ public abstract class Provider implements Constantes {
 			providerListeners.remove(providerListener);
 	}
 
-	protected void fireProviderChange() {
+	protected void fireProviderChange(Provider provider) {
 		for (Iterator<ProviderListener> iterator = providerListeners.iterator(); iterator.hasNext();) {
 			ProviderListener pl = iterator.next();
-			pl.onProviderChange(this);
+			pl.onProviderChange(provider);
 		}
 	}
 
@@ -91,5 +91,7 @@ public abstract class Provider implements Constantes {
 	public boolean isAuto() {
 		return auto;
 	}
+
+	abstract public String getShortName();
 
 }

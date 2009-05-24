@@ -1,5 +1,7 @@
 package org.dreamsoft.chessplayer.client;
 
+import java.util.ArrayList;
+
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.DialogBox;
@@ -13,10 +15,12 @@ import com.google.gwt.user.client.ui.HTMLTable.Cell;
 public class ChessBoardRenderer implements Constantes {
 
 	public enum HighlightMode {
-		SELECTED, UNSELECTED, LEGAL, CHESS
+		SELECTED, UNSELECTED, LEGAL, CHESS, MAT, PAT
 	}
 
 	private Grid grid = new Grid(10, 10);
+
+	private ArrayList<int[]> highlighted = new ArrayList<int[]>();
 
 	public ChessBoardRenderer() {
 		grid.setCellSpacing(0);
@@ -37,13 +41,18 @@ public class ChessBoardRenderer implements Constantes {
 	protected void onBoardClick(int x, int y) {
 	}
 
-	protected void clearSelection() {
-		initCaseStyle();
+	public void clearSelection() {
+		for (int[] pos : highlighted) {
+			String s = grid.getCellFormatter().getStyleName(pos[1] + 1, pos[0] + 1).endsWith("1") ? "1" : "2";
+			grid.getCellFormatter().setStyleName(pos[1] + 1, pos[0] + 1, "case" + s);
+		}
+		highlighted.clear();
 	}
 
 	private void addStyleCase(int x, int y, String style) {
 		String s = grid.getCellFormatter().getStyleName(y + 1, x + 1).endsWith("1") ? "1" : "2";
 		grid.getCellFormatter().addStyleName(y + 1, x + 1, style + s);
+		highlighted.add(new int[] { x, y });
 	}
 
 	private void initBorderStyle() {
@@ -116,7 +125,7 @@ public class ChessBoardRenderer implements Constantes {
 			final int p = pieceChoice[i];
 			r.addClickHandler(new ClickHandler() {
 				public void onClick(ClickEvent event) {
-					onPromoteSelected(x,y,p * 10 + color);
+					onPromoteSelected(x, y, p * 10 + color);
 					if (promoteDialog.isShowing())
 						promoteDialog.hide();
 				};
@@ -134,7 +143,6 @@ public class ChessBoardRenderer implements Constantes {
 
 	protected void onPromoteSelected(int x, int y, int piece) {
 	}
-
 
 	private Image makeImage(int value) {
 		Image i = new Image("images/" + value % 100 + ".gif");

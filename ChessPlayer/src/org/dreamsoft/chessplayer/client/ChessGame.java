@@ -1,9 +1,9 @@
 package org.dreamsoft.chessplayer.client;
 
-import java.util.ArrayList;
-
 import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
+import org.dreamsoft.chessplayer.client.ChessBoardUtils.ChessStatus;
 import org.dreamsoft.chessplayer.client.provider.FileProvider;
+import org.dreamsoft.chessplayer.client.provider.HumanProvider;
 import org.dreamsoft.chessplayer.client.provider.Provider;
 import org.dreamsoft.chessplayer.client.provider.ProviderListener;
 import org.dreamsoft.chessplayer.client.provider.SelectableProvider;
@@ -70,20 +70,14 @@ public class ChessGame extends Composite implements Constantes {
 		@Override
 		protected void onPromoteSelected(int x, int y, int piece) {
 			board.setPromote(x, y, piece);
-			checkForStatus();
 		}
 
 		@Override
 		protected void onBoardClick(int x, int y) {
-			if (board.getSelectedPos() == -1 && board.getColor(x, y) == getTurn()) {
-				board.select(x, y);
-			} else {
-				if (board.getSelectedPos() != x + y * 10 && board.moveSelectedPiece(x, y)) {
-					changeTurn();
-					checkForStatus();
-				} else {
-					board.unselect();
-				}
+			SelectableProvider p = selectableProvider[getTurn()];
+			if (p.getProvider() instanceof HumanProvider) {
+				HumanProvider humanProvider = (HumanProvider) p.getProvider();
+				humanProvider.boardClick(x, y, getTurn());
 			}
 		}
 	};
@@ -96,26 +90,6 @@ public class ChessGame extends Composite implements Constantes {
 
 	public ChessGame() {
 		initUI();
-	}
-
-	protected void checkForStatus() {
-		if (board.isChess(getTurn())) {
-			int kingPos[] = board.getKingXY(getTurn());
-			if (renderer != null)
-				renderer.highlight(kingPos[0], kingPos[1], HighlightMode.CHESS);
-			// On commence par vérifier si le roi peut bouger
-			ArrayList<int[]> kingMove = board.getAllowedMoves(kingPos[0], kingPos[1]);
-			if (kingMove.size() == 0) {
-				// Test du echec et mat!!
-				if (board.isMat(getTurn())) {
-					showMessage((((getTurn() == WHITE) ? "White" : "Black") + " MAT !!"));
-				}
-			}
-		} else {
-			if (board.isMat(getTurn())) {
-				showMessage("PAT !!");
-			}
-		}
 	}
 
 	private void initUI() {
@@ -170,19 +144,45 @@ public class ChessGame extends Composite implements Constantes {
 		turnLabel[getOpponentTurn()].setStyleName("turnUnselected");
 		if (selectableProvider[getTurn()].isAuto()) {
 			playTurn(selectableProvider[getTurn()]);
+		} else {
+			checkStatus();
 		}
 	}
 
 	private void playTurn(Provider provider) {
-		board.unselect();
 		final ChessMove nextMove = provider.getNextMove(getTurn());
 		System.out.println("[" + provider + "] move=" + nextMove);
 		if (nextMove != null) {
-			if (nextMove.text != null) {
-				moveLog.setHTML(moveLog.getHTML() + (((getTurn() == BLACK) ? "-" : "<br>") + nextMove.text));
+			String moveText = "";
+			if (nextMove.text != null && nextMove.text.length() > 0) {
+				moveText = nextMove.text;
+			} else {
+				moveText = "abcdefgh".charAt(nextMove.fromX) + "" + (8 - nextMove.fromY) + "" + "abcdefgh".charAt(nextMove.toX) + "" + (8 - nextMove.toY);
 			}
+			moveLog.setHTML(moveLog.getHTML() + (((getTurn() == BLACK) ? "-" : "<br>") + moveText));
 			board.move(nextMove);
 			changeTurn();
+		} else {
+			checkStatus();
+		}
+	}
+
+	private void checkStatus() {
+		renderer.clearSelection();
+		ChessStatus chessStatus = ChessBoardUtils.checkForStatus(board, getTurn());
+		int[] kp1 = board.getKingXY(getTurn());
+		int[] kp2 = board.getKingXY(getOpponentTurn());
+		switch (chessStatus) {
+		case CHESS:
+			renderer.highlight(kp1[0], kp1[1], HighlightMode.CHESS);
+			break;
+		case MAT:
+			renderer.highlight(kp1[0], kp1[1], HighlightMode.MAT);
+			break;
+		case PAT:
+			renderer.highlight(kp1[0], kp1[1], HighlightMode.PAT);
+			renderer.highlight(kp2[0], kp2[1], HighlightMode.PAT);
+			break;
 		}
 	}
 
@@ -204,7 +204,6 @@ public class ChessGame extends Composite implements Constantes {
 		setTurn(WHITE);
 		moveMessage.setHTML("");
 		moveLog.setHTML("");
-		board.unselect();
 		board.reset();
 	}
 
