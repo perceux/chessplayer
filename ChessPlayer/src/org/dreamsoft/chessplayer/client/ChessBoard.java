@@ -6,8 +6,6 @@ import java.util.LinkedList;
 
 import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
 
-import com.google.gwt.user.client.Window;
-
 public class ChessBoard implements Cloneable, Constantes {
 
 	private final int board[][] = new int[8][8];
@@ -27,11 +25,11 @@ public class ChessBoard implements Cloneable, Constantes {
 		return board[x][y];
 	}
 
-	int getColor(int x, int y) {
+	public int getColor(int x, int y) {
 		return board[x][y] % 10;
 	}
 
-	private int getType(int x, int y) {
+	public int getType(int x, int y) {
 		return board[x][y] % 100 / 10;
 	}
 
@@ -71,26 +69,37 @@ public class ChessBoard implements Cloneable, Constantes {
 		int type = getType(x, y);
 		int color = getColor(x, y);
 		int oponentColor = (color == WHITE ? BLACK : WHITE);
-		int _x = x;
-		int _y = y;
 
 		switch (type) {
 		case PAWN:
-			int sens = (color == WHITE) ? -1 : 1;
-			int nexty = _y + sens;
-			int nextnexty = _y + 2 * sens;
+			int step = (color == WHITE) ? -1 : 1;
+			int y1 = y + step;
+			int y2 = y + 2 * step;
 
-			if (getColor(_x, nexty) == EMPTY) {
-				addValid(x, y, list, _x, nexty);
-				if (getMoves(x, y) == 0 && getColor(_x, nextnexty) == EMPTY) {
-					addValid(x, y, list, _x, nextnexty);
+			if (getColor(x, y1) == EMPTY) {
+				addValid(x, y, list, x, y1);
+				if (getMoves(x, y) == 0 && getColor(x, y2) == EMPTY) {
+					addValid(x, y, list, x, y2);
 				}
 			}
-			if (_x < 7 && getColor(_x + 1, nexty) == oponentColor) {
-				addValid(x, y, list, _x + 1, nexty);
+			if (x < 7 && getColor(x + 1, y1) == oponentColor) {
+				addValid(x, y, list, x + 1, y1);
 			}
-			if (_x > 0 && getColor(_x - 1, nexty) == oponentColor) {
-				addValid(x, y, list, _x - 1, nexty);
+			if (x > 0 && getColor(x - 1, y1) == oponentColor) {
+				addValid(x, y, list, x - 1, y1);
+			}
+
+			// En passant
+			int enPassantY = (color == WHITE) ? 3 : 4;
+			if (y == enPassantY) {
+				ChessMove lastMove = moveHistory.getLast();
+				if (lastMove.fromPiece % 100 == PAWN * 10 + oponentColor && lastMove.toY == enPassantY && Math.abs(lastMove.fromY - lastMove.toY) > 1) {
+					if (lastMove.toX == x - 1) {
+						addValid(x, y, list, x - 1, y1);
+					} else if (lastMove.toX == x + 1) {
+						addValid(x, y, list, x + 1, y1);
+					}
+				}
 			}
 
 			break;
@@ -113,7 +122,7 @@ public class ChessBoard implements Cloneable, Constantes {
 
 			break;
 		case KNIGHT:
-			ArrayList<int[]> mvtList = getKnightMovesArrayList(_x, _y);
+			ArrayList<int[]> mvtList = getKnightMovesArrayList(x, y);
 			for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
 				int pos[] = (int[]) iter.next();
 				addValid(x, y, list, pos[0], pos[1]);
@@ -131,20 +140,20 @@ public class ChessBoard implements Cloneable, Constantes {
 			addValidUntilBlocked(x, y, list, -1, -1);
 			break;
 		case KING:
-			addValid(x, y, list, _x + 1, _y);
-			addValid(x, y, list, _x + 1, _y + 1);
-			addValid(x, y, list, _x + 1, _y - 1);
-			addValid(x, y, list, _x, _y + 1);
-			addValid(x, y, list, _x, _y - 1);
-			addValid(x, y, list, _x - 1, _y + 1);
-			addValid(x, y, list, _x - 1, _y - 1);
-			addValid(x, y, list, _x - 1, _y);
+			addValid(x, y, list, x + 1, y);
+			addValid(x, y, list, x + 1, y + 1);
+			addValid(x, y, list, x + 1, y - 1);
+			addValid(x, y, list, x, y + 1);
+			addValid(x, y, list, x, y - 1);
+			addValid(x, y, list, x - 1, y + 1);
+			addValid(x, y, list, x - 1, y - 1);
+			addValid(x, y, list, x - 1, y);
 			// T0,1,2,3,R4,5,6,T7
 			if (getMoves(x, y) == 0) {
-				if (getPiece(1, y) == EMPTY && getPiece(2, y) == EMPTY && getPiece(3, y) == EMPTY && getPiece(0, y) == ROOK * 10 + color && tryMoveForChess(x, y, x - 1, y)) {
+				if (getPiece(1, y) == EMPTY && getPiece(2, y) == EMPTY && getPiece(3, y) == EMPTY && getPiece(0, y) == ROOK * 10 + color && !isChessAfterMove(x, y, x - 1, y)) {
 					addValid(x, y, list, x - 2, y); // grand roc
 				}
-				if (getPiece(5, y) == EMPTY && getPiece(6, y) == EMPTY && getPiece(7, y) == (ROOK * 10 + color) && tryMoveForChess(x, y, x + 1, y)) {
+				if (getPiece(5, y) == EMPTY && getPiece(6, y) == EMPTY && getPiece(7, y) == (ROOK * 10 + color) && !isChessAfterMove(x, y, x + 1, y)) {
 					addValid(x, y, list, x + 2, y); // petit roc
 				}
 			}
@@ -158,27 +167,24 @@ public class ChessBoard implements Cloneable, Constantes {
 	}
 
 	private void addValidUntilBlocked(int x, int y, ArrayList<int[]> list, int deltax, int deltay) {
-		int dx = x;
-		int dy = y;
+		int x2 = x;
+		int y2 = y;
 		while (true) {
-			dx += deltax;
-			dy += deltay;
-			if (!isOnBoard(dx, dy))
+			x2 += deltax;
+			y2 += deltay;
+			if (!isOnBoard(x2, y2))
 				break;
-			addValid(x, y, list, dx, dy);
+			addValid(x, y, list, x2, y2);
 			// on s'arrete si on a rencontré une piece!!
-			if (getPiece(dx, dy) != EMPTY)
+			if (getPiece(x2, y2) != EMPTY)
 				break;
 		}
 	}
 
-	private void addValid(int x, int y, ArrayList<int[]> list, int _x, int _y) {
-		if (isOnBoard(_x, _y)) {
-			int targetColor = getColor(_x, _y);
-			if (targetColor == EMPTY || targetColor != getColor(x, y)) {
-				if (!tryMoveForChess(x, y, _x, _y)) {
-					list.add(new int[] { _x, _y });
-				}
+	private void addValid(int x, int y, ArrayList<int[]> list, int x2, int y2) {
+		if (isOnBoard(x2, y2) && getColor(x2, y2) != getColor(x, y)) {
+			if (!isChessAfterMove(x, y, x2, y2)) {
+				list.add(new int[] { x2, y2 });
 			}
 		}
 	}
@@ -196,23 +202,62 @@ public class ChessBoard implements Cloneable, Constantes {
 		return mvtList;
 	}
 
-	private boolean tryMoveForChess(int x, int y, int _x, int _y) {
+	private boolean isChessAfterMove(int x, int y, int _x, int _y) {
 		ChessBoard testingBoard = clone();
 		testingBoard.move(x, y, _x, _y);
-		return testingBoard.ifChess(getColor(x, y));
+		return testingBoard.isChess(getColor(x, y));
 	}
 
-	public boolean ifChess(int color) {
+	public boolean isChess(int color) {
 		int[] kp = getKingXY(color);
-		int i = kp[0];
-		int j = kp[1];
-		return checkKingChessLine(i, j, 0, 1, color) || checkKingChessLine(i, j, 0, -1, color) || checkKingChessLine(i, j, 1, 0, color) || checkKingChessLine(i, j, -1, 0, color)
-				|| checkKingChessLine(i, j, 1, 1, color) || checkKingChessLine(i, j, 1, -1, color) || checkKingChessLine(i, j, -1, 1, color) || checkKingChessLine(i, j, -1, -1, color)
-				|| checkKingChessKnight(i, j, color);
+		return isAttacked(kp[0], kp[1]);
 	}
 
-	private boolean checkKingChessKnight(int _x, int _y, int color) {
-		ArrayList<int[]> mvtList = getKnightMovesArrayList(_x, _y);
+	private boolean isAttacked(int x, int y) {
+		boolean attacked = false;
+		int color = getColor(x, y);
+		for (int deltax = -1; deltax <= 1; deltax++) {
+			for (int deltay = -1; deltay <= 1; deltay = ((deltax == 0 && deltay == -1) ? 1 : deltay + 1)) {
+				int dx = x;
+				int dy = y;
+				boolean first = true;
+				while (true) {
+					dx += deltax;
+					dy += deltay;
+					if (!isOnBoard(dx, dy))
+						break;
+					// on s'arrete si on a rencontré une piece!!
+					int p = getPiece(dx, dy);
+					if (p != EMPTY) {
+						if (p % 10 != color) {
+							switch (p % 100 / 10) {
+							case PAWN:
+								attacked = (first && (deltax * deltay != 0) && ((dy > y && color == BLACK) || (dy < y && color == WHITE)));
+								break;
+							case KING:
+								attacked = first;
+								break;
+							case BISHOP:
+								attacked = (deltax * deltay != 0);
+								break;
+							case QUEEN:
+								attacked = true;
+								break;
+							case ROOK:
+								attacked = (deltax * deltay == 0);
+								break;
+							}
+						}
+						first = false;
+						break;
+					}
+					first = false;
+				}
+				if (attacked)
+					return true;
+			}
+		}
+		ArrayList<int[]> mvtList = getKnightMovesArrayList(x, y);
 		for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
 			int pos[] = (int[]) iter.next();
 			if (isOnBoard(pos[0], pos[1])) {
@@ -224,81 +269,11 @@ public class ChessBoard implements Cloneable, Constantes {
 		return false;
 	}
 
-	private boolean checkKingChessLine(int x, int y, int deltax, int deltay, int color) {
-		int dx = x;
-		int dy = y;
-		boolean first = true;
-		while (true) {
-			dx += deltax;
-			dy += deltay;
-			if (!isOnBoard(dx, dy))
-				break;
-			// on s'arrete si on a rencontré une piece!!
-			if (getPiece(dx, dy) != EMPTY)
-				if (getColor(dx, dy) != color) {
-					switch (getType(dx, dy)) {
-					case PAWN:
-						return (first && (deltax * deltay != 0) && ((dy > y && color == BLACK) || (dy < y && color == WHITE)));
-					case KING:
-						return first;
-					case BISHOP:
-						return (deltax * deltay != 0);
-					case QUEEN:
-						return true;
-					case ROOK:
-						return (deltax * deltay == 0);
-					default:
-						return false;
-					}
-				} else {
-					return false;
-				}
-			first = false;
-		}
-		return false;
-	}
-
-	public boolean moveTo(int type, int color, int row_start, int col_start, int row_end, int col_end) {
-		int[] foundPiece = null;
-		for (int x = 0; x < 8; x++) {
-			for (int y = 0; y < 8; y++) {
-				if (getColor(x, y) == color && getType(x, y) == type) {
-					// Verifie les indices de position de depart
-					if (col_start >= 0 && x != col_start) {
-						continue;
-					}
-					if (row_start < 8 && y != row_start) {
-						continue;
-					}
-
-					// Verifie la destination
-					ArrayList<int[]> allowedMoves = getAllowedMoves(x, y);
-					for (Iterator<int[]> iter = allowedMoves.iterator(); iter.hasNext();) {
-						int[] pos = (int[]) iter.next();
-						if (pos[0] == col_end && pos[1] == row_end) {
-							foundPiece = new int[] { x, y };
-							break;
-						}
-					}
-				}
-				if (foundPiece != null)
-					break;
-			}
-			if (foundPiece != null)
-				break;
-		}
-		if (foundPiece == null)
-			return false;
-
-		move(foundPiece[0], foundPiece[1], col_end, row_end);
-		return true;
-	}
-
 	public void move(int x, int y, int _x, int _y) {
 		int piece = getPiece(x, y);
 		if (piece != EMPTY) {
 			// Enregistrement du mouvement
-			moveHistory.push(new ChessMove(getPiece(x, y), x, y, getPiece(_x, _y), _x, _y));
+			moveHistory.add(new ChessMove(getPiece(x, y), x, y, getPiece(_x, _y), _x, _y));
 
 			// Detection du rock pour bouger la tour
 			if (getType(x, y) == KING && Math.abs(x - _x) == 2) {
@@ -315,10 +290,11 @@ public class ChessBoard implements Cloneable, Constantes {
 				}
 			}
 
-			// TODO Detection du "en passant" pour supprimer le pion adverse
-			// if (type == PAWN && Math.abs(pos[1] - y) >
-			// 1 && Math.abs(pos[0] - x) > 1) {
-			// }
+			// Detection du "en passant" pour supprimer le pion adverse
+			if (getType(x, y) == PAWN && Math.abs(y - _y) > 0 && Math.abs(x - _x) > 0 && getPiece(_x, _y) == EMPTY) {
+				// TODO history?
+				setPiece(_x, y, EMPTY);
+			}
 
 			setPiece(_x, _y, piece + 100); // moves + 1
 			setPiece(x, y, EMPTY);
@@ -327,7 +303,7 @@ public class ChessBoard implements Cloneable, Constantes {
 		}
 	}
 
-	public boolean ifMat(int color) {
+	public boolean isMat(int color) {
 		// On doit tester si une autre pièce peut empècher l'echec
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
@@ -363,7 +339,7 @@ public class ChessBoard implements Cloneable, Constantes {
 		return new int[] { kp % 10, kp / 10 };
 	}
 
-	protected final ChessBoard clone() {
+	public final ChessBoard clone() {
 		final ChessBoard cloned = new ChessBoard();
 		for (int i = 0; i < 8; i++) {
 			System.arraycopy(this.board[i], 0, cloned.board[i], 0, board[i].length);
@@ -379,7 +355,7 @@ public class ChessBoard implements Cloneable, Constantes {
 	public ChessMove getMove(int x, int y, int i, int j) {
 		return new ChessMove(getPiece(x, y), x, y, getPiece(i, j), i, j);
 	}
-
+	
 	public ArrayList<ChessMove> getAllMoves(int color) {
 		ArrayList<ChessMove> allMoves = new ArrayList<ChessMove>();
 		for (int i = 0; i < 8; i++) {
@@ -390,8 +366,6 @@ public class ChessBoard implements Cloneable, Constantes {
 						potentialMoves = getAllowedMoves(i, j);
 					} catch (Exception e) {
 						e.printStackTrace();
-						Window.alert("_____________ i,j=" + i + "," + j);
-						System.out.println("_____________ piece i,j=" + getPiece(i, j));
 					}
 					for (Iterator<int[]> iterator = potentialMoves.iterator(); iterator.hasNext();) {
 						int[] toXY = iterator.next();
@@ -449,9 +423,40 @@ public class ChessBoard implements Cloneable, Constantes {
 		}
 	}
 
-
-
 	public void setPromote(int x, int y, int piece) {
 		setPiece(x, y, piece);
 	}
+
+	public int[] searchPieceXY(int type, int color, int row_start, int col_start, int row_end, int col_end) {
+		int[] foundPiece = null;
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+				if (getColor(x, y) == color && getType(x, y) == type) {
+					// Verifie les indices de position de depart
+					if (col_start > 0 && x != col_start) {
+						continue;
+					}
+					if (row_start < 8 && y != row_start) {
+						continue;
+					}
+
+					// Verifie la destination
+					ArrayList<int[]> allowedMoves = getAllowedMoves(x, y);
+					for (Iterator<int[]> iter = allowedMoves.iterator(); iter.hasNext();) {
+						int[] pos = (int[]) iter.next();
+						if (pos[0] == col_end && pos[1] == row_end) {
+							foundPiece = new int[] { x, y };
+							break;
+						}
+					}
+				}
+				if (foundPiece != null)
+					break;
+			}
+			if (foundPiece != null)
+				break;
+		}
+		return foundPiece;
+	}
+
 }

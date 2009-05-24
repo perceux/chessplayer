@@ -104,6 +104,7 @@ public class ChessBoardRenderer implements Constantes {
 
 	public void setPromote(final int x, final int y, final int color) {
 		final DialogBox promoteDialog = new DialogBox(true, true);
+		promoteDialog.setTitle("Promotion");
 		Grid f = new Grid(2, 4);
 		f.setCellSpacing(4);
 		int pieceChoice[] = new int[] { QUEEN, BISHOP, KNIGHT, ROOK };

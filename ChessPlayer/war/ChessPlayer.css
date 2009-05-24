@@ -28,6 +28,14 @@ a:active {
 	height: 38px;
 }
 
+.turnSelected {
+	border: 1px solid black;
+}
+
+.turnUnselected {
+	border: 1px solid white;
+}
+
 .case1 {
 	background-color: #DDDDDD;
 	height: 38px;
@@ -80,7 +88,7 @@ a:active {
 
 .gwt-Button, .gwt-ToggleButton {
   width: 30px;
-  height: 30px;
+  height: 100%;
 }
 
 .gwt-Button {
