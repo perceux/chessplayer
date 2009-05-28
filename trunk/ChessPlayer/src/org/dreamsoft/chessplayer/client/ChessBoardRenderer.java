@@ -93,6 +93,10 @@ public class ChessBoardRenderer implements Constantes {
 		grid.setWidget(y + 1, x + 1, i);
 	}
 
+	public void highlight(int pos, HighlightMode hl) {
+		highlight(pos % 8, pos / 8, hl);
+	}
+
 	public void highlight(int x, int y, HighlightMode hl) {
 		switch (hl) {
 		case SELECTED:

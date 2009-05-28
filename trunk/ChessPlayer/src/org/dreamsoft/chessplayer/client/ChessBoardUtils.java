@@ -3,9 +3,8 @@ package org.dreamsoft.chessplayer.client;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
-
 public class ChessBoardUtils implements Constantes {
+		
 	public static ArrayList<ChessMove> getAllMoves(ChessBoard b, int color) {
 		ArrayList<ChessMove> allMoves = new ArrayList<ChessMove>();
 		for (int i = 0; i < 8; i++) {
@@ -41,7 +40,7 @@ public class ChessBoardUtils implements Constantes {
 
 			if (b.getColor(x, y1) == EMPTY) {
 				addValid(b, x, y, list, x, y1);
-				if (b.getMoves(x, y) == 0 && b.getColor(x, y2) == EMPTY) {
+				if (!b.hasMoved(x, y) && b.getColor(x, y2) == EMPTY) {
 					addValid(b, x, y, list, x, y2);
 				}
 			}
@@ -85,12 +84,9 @@ public class ChessBoardUtils implements Constantes {
 
 			break;
 		case KNIGHT:
-			ArrayList<int[]> mvtList = getKnightMovesArrayList(x, y);
-			for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
-				int pos[] = (int[]) iter.next();
-				addValid(b, x, y, list, pos[0], pos[1]);
+			for (int[] d : knightMovesDelta) {
+				addValid(b, x, y, list, x + d[0], y + d[1]);
 			}
-
 			break;
 		case BISHOP:
 			// 4 diagonales, cas d'arrêt :
@@ -112,7 +108,7 @@ public class ChessBoardUtils implements Constantes {
 			addValid(b, x, y, list, x - 1, y - 1);
 			addValid(b, x, y, list, x - 1, y);
 			// T0,1,2,3,R4,5,6,T7
-			if (b.getMoves(x, y) == 0) {
+			if (!b.hasMoved(x, y)) {
 				if (b.getPiece(1, y) == EMPTY && b.getPiece(2, y) == EMPTY && b.getPiece(3, y) == EMPTY && b.getPiece(0, y) == ROOK * 10 + color && !isChessAfterMove(b, x, y, x - 1, y)) {
 					addValid(b, x, y, list, x - 2, y); // grand roc
 				}
@@ -135,12 +131,9 @@ public class ChessBoardUtils implements Constantes {
 			b.getRenderer().clearSelection();
 		}
 		if (isChess(b, color)) {
-			int kingPos[] = b.getKingXY(color);
-			if (b.getRenderer() != null) {
-				b.getRenderer().highlight(kingPos[0], kingPos[1], HighlightMode.CHESS);
-			}
+			int kingPos = b.getKingPos(color);
 			// On commence par vérifier si le roi peut bouger
-			ArrayList<int[]> kingMove = getAllowedMoves(b, kingPos[0], kingPos[1]);
+			ArrayList<int[]> kingMove = getAllowedMoves(b, kingPos % 8, kingPos / 8);
 			if (kingMove.size() == 0) {
 				// Test du echec et mat!!
 				if (isMat(b, color)) {
@@ -190,18 +183,7 @@ public class ChessBoardUtils implements Constantes {
 		}
 	}
 
-	private static ArrayList<int[]> getKnightMovesArrayList(int _x, int _y) {
-		ArrayList<int[]> mvtList = new ArrayList<int[]>();
-		mvtList.add(new int[] { _x + 2, _y - 1 });
-		mvtList.add(new int[] { _x + 2, _y + 1 });
-		mvtList.add(new int[] { _x - 2, _y - 1 });
-		mvtList.add(new int[] { _x - 2, _y + 1 });
-		mvtList.add(new int[] { _x + 1, _y + 2 });
-		mvtList.add(new int[] { _x + 1, _y - 2 });
-		mvtList.add(new int[] { _x - 1, _y + 2 });
-		mvtList.add(new int[] { _x - 1, _y - 2 });
-		return mvtList;
-	}
+	private static int[][] knightMovesDelta = new int[][] { { +2, 1 }, { +2, 1 }, { -2, 1 }, { -2, 1 }, { +1, 2 }, { +1, 2 }, { -1, 2 }, { -1, 2 } };
 
 	private static boolean isChessAfterMove(ChessBoard b, int x, int y, int _x, int _y) {
 		ChessBoard testingBoard = b.clone();
@@ -210,8 +192,8 @@ public class ChessBoardUtils implements Constantes {
 	}
 
 	public static boolean isChess(ChessBoard b, int color) {
-		int[] kp = b.getKingXY(color);
-		return isAttacked(b, kp[0], kp[1]);
+		int kp = b.getKingPos(color);
+		return isAttacked(b, kp % 8, kp / 8);
 	}
 
 	private static boolean isAttacked(ChessBoard b, int x, int y) {
@@ -258,11 +240,9 @@ public class ChessBoardUtils implements Constantes {
 					return true;
 			}
 		}
-		ArrayList<int[]> mvtList = getKnightMovesArrayList(x, y);
-		for (Iterator<int[]> iter = mvtList.iterator(); iter.hasNext();) {
-			int pos[] = (int[]) iter.next();
-			if (b.isOnBoard(pos[0], pos[1])) {
-				if (b.getType(pos[0], pos[1]) == KNIGHT && b.getColor(pos[0], pos[1]) != color) {
+		for (int[] d : knightMovesDelta) {
+			if (b.isOnBoard(x + d[0], y + d[1])) {
+				if (b.getPiece(x + d[0], y + d[1]) == KNIGHT * 10 + color) {
 					return true;
 				}
 			}
@@ -306,6 +286,20 @@ public class ChessBoardUtils implements Constantes {
 		ChessBoard cloned = b.clone();
 		cloned.move(m);
 		return cloned;
+	}
+
+	public static String move(String board, int pos1, int pos2) {
+		char piece = (char) ((board.charAt(pos1) % 100) + 100);
+		if (pos2 > pos1) {
+			return board.substring(0, pos1) + EMPTY + board.substring(pos1 + 1, pos2) + piece + board.substring(pos2 + 1);
+		} else if (pos1 > pos2) {
+			return board.substring(0, pos2) + piece + board.substring(pos2 + 1, pos1) + EMPTY + board.substring(pos1 + 1);
+		}
+		return board;
+	}
+
+	public static String setPiece(String board, int pos, char c) {
+		return board.substring(0, pos) + c + board.substring(pos + 1);
 	}
 
 }

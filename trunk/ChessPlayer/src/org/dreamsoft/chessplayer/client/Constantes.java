@@ -13,7 +13,7 @@ public interface Constantes {
 	
 	public static final int QUEEN = 6;
 	
-	public static final int EMPTY = 0;
+	public static final char EMPTY = 0;
 	
 	public static final int WHITE = 1;
 	
