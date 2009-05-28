@@ -168,21 +168,20 @@ public class ChessGame extends Composite implements Constantes {
 	}
 
 	private void checkStatus() {
+
 		renderer.clearSelection();
 		ChessStatus chessStatus = ChessBoardUtils.checkForStatus(board, getTurn());
-		int[] kp1 = board.getKingXY(getTurn());
-		int[] kp2 = board.getKingXY(getOpponentTurn());
 		switch (chessStatus) {
 		case CHESS:
-			renderer.highlight(kp1[0], kp1[1], HighlightMode.CHESS);
+			renderer.highlight(board.getKingPos(getTurn()), HighlightMode.MAT);
 			break;
 		case MAT:
-			renderer.highlight(kp1[0], kp1[1], HighlightMode.MAT);
+			renderer.highlight(board.getKingPos(getTurn()), HighlightMode.MAT);
 			showMessage("MAT!!");
 			break;
 		case PAT:
-			renderer.highlight(kp1[0], kp1[1], HighlightMode.PAT);
-			renderer.highlight(kp2[0], kp2[1], HighlightMode.PAT);
+			renderer.highlight(board.getKingPos(getTurn()), HighlightMode.PAT);
+			renderer.highlight(board.getKingPos(getOpponentTurn()), HighlightMode.PAT);
 			showMessage("PAT!!");
 			break;
 		}

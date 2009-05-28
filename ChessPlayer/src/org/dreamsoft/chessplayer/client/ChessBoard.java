@@ -4,29 +4,26 @@ import java.util.LinkedList;
 
 public class ChessBoard implements Cloneable, Constantes {
 
-	private final int board[] = new int[64];
-
-	private final int[] kingPos = new int[] { 0, 0, 0 };
+	private String board = "                                                                ";
 
 	LinkedList<ChessMove> moveHistory = new LinkedList<ChessMove>();
 
 	private ChessBoardRenderer renderer;
 
 	public final int getPiece(int x, int y) {
-		// color + type * 10 + moves * 100
-		return board[x + y * 8];
+		return getBoard().charAt(x + y * 8); // color + type * 10 + moves * 100
 	}
 
 	public int getColor(int x, int y) {
-		return board[x + y * 8] % 10;
+		return getBoard().charAt(x + y * 8) % 10;
 	}
 
 	public int getType(int x, int y) {
-		return board[x + y * 8] % 100 / 10;
+		return getBoard().charAt(x + y * 8) % 100 / 10;
 	}
 
-	int getMoves(int x, int y) {
-		return board[x + y * 8] / 100;
+	public boolean hasMoved(int x, int y) {
+		return (getBoard().charAt(x + y * 8) > 100);
 	}
 
 	private int makePiece(int type, int color) {
@@ -66,7 +63,7 @@ public class ChessBoard implements Cloneable, Constantes {
 		int piece = getPiece(x, y);
 		if (piece != EMPTY) {
 			// Enregistrement du mouvement
-			moveHistory.add(new ChessMove(getPiece(x, y), x, y, getPiece(_x, _y), _x, _y));
+			moveHistory.add(new ChessMove(piece, x, y, getPiece(_x, _y), _x, _y));
 
 			// Detection du rock pour bouger la tour
 			if (getType(x, y) == KING && Math.abs(x - _x) == 2) {
@@ -74,23 +71,32 @@ public class ChessBoard implements Cloneable, Constantes {
 				move(_x > x ? 7 : 0, _y, _x > x ? _x - 1 : _x + 1, _y);
 			}
 
-			// Detection du pion en fin de ligne pour promote
-			if (getType(x, y) == PAWN && (_y == 0 || _y == 7)) {
-				if (renderer != null) {
-					renderer.setPromote(_x, _y, getColor(x, y));
-				} else {
-					piece = QUEEN * 10 + piece % 10;
+			if (getType(x, y) == PAWN) {
+				// Detection du pion en fin de ligne pour promote
+				if (_y == 0 || _y == 7) {
+					if (renderer != null) {
+						// TODO History ?
+						renderer.setPromote(_x, _y, getColor(x, y));
+					} else {
+						setBoard(ChessBoardUtils.setPiece(getBoard(), x + y * 8, (char) piece));
+					}
+					// Detection du "en passant" pour supprimer le pion adverse
+				} else if (Math.abs(y - _y) > 0 && Math.abs(x - _x) > 0 && getPiece(_x, _y) == EMPTY) {
+					// TODO history?
+					setBoard(ChessBoardUtils.setPiece(getBoard(), _x + y * 8, EMPTY));
+					if (renderer != null) {
+						renderer.render(_x, y, getPiece(_x, y));
+					}
 				}
 			}
 
-			// Detection du "en passant" pour supprimer le pion adverse
-			if (getType(x, y) == PAWN && Math.abs(y - _y) > 0 && Math.abs(x - _x) > 0 && getPiece(_x, _y) == EMPTY) {
-				// TODO history?
-				setPiece(_x, y, EMPTY);
+			// Déplacement de la piece
+			setBoard(ChessBoardUtils.move(getBoard(), x + y * 8, _x + _y * 8));
+			
+			if (renderer != null) {
+				renderer.render(_x, _y, getPiece(_x, _y));
+				renderer.render(x, y, getPiece(x, y));
 			}
-
-			setPiece(_x, _y, piece + 100); // moves + 1
-			setPiece(x, y, EMPTY);
 		} else {
 			System.out.println("move empty " + x + "," + y);
 		}
@@ -103,27 +109,30 @@ public class ChessBoard implements Cloneable, Constantes {
 		 */
 	}
 
+	/**
+	 * @deprecated
+	 */
 	protected void setPiece(int x, int y, int value) {
 		if (!isOnBoard(x, y)) {
 			return;
 		}
-		if (value % 100 / 10 == KING) {
-			kingPos[value % 10] = x + y * 10;
-		}
-		board[x + y * 8] = value;
+		char[] sb = getBoard().toCharArray();
+		sb[x + y * 8] = (char) value;
+		setBoard(String.copyValueOf(sb));
+		// board.[x + y * 8] = value;
 		if (renderer != null)
 			renderer.render(x, y, value);
 	}
 
-	public int[] getKingXY(int color) {
-		int kp = kingPos[color];
-		return new int[] { kp % 10, kp / 10 };
+	public int getKingPos(int color) {
+		int p1 = getBoard().indexOf(KING * 10 + color);
+		int p2 = getBoard().indexOf(100 + KING * 10 + color);
+		return p1 != -1 ? p1 : p2;
 	}
 
 	public final ChessBoard clone() {
 		final ChessBoard cloned = new ChessBoard();
-		System.arraycopy(this.board, 0, cloned.board, 0, board.length);
-		System.arraycopy(this.kingPos, 0, cloned.kingPos, 0, kingPos.length);
+		cloned.setBoard(this.getBoard());
 		return cloned;
 	}
 
@@ -148,12 +157,7 @@ public class ChessBoard implements Cloneable, Constantes {
 	}
 
 	public boolean hasTwoKings() {
-		for (int color : new int[] { WHITE, BLACK }) {
-			int[] kp = getKingXY(color);
-			if (getType(kp[0], kp[1]) != KING)
-				return false;
-		}
-		return true;
+		return getKingPos(WHITE) >= 0 && getKingPos(BLACK) >= 0;
 	}
 
 	/**
@@ -167,11 +171,19 @@ public class ChessBoard implements Cloneable, Constantes {
 		int result[] = new int[] { 0, 0 };
 		int tmp = 0;
 		for (int i = 0; i < 64; i++) {
-			tmp = board[i];
+			tmp = getBoard().charAt(i);
 			if (tmp > 0)
 				result[(tmp % 10) - 1] += pieceValue[(tmp % 100) / 10];
 		}
 		return result;
+	}
+
+	public void setBoard(String board) {
+		this.board = board;
+	}
+
+	public String getBoard() {
+		return board;
 	}
 
 }

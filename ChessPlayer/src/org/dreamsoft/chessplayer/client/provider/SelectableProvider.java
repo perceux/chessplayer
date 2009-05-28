@@ -14,7 +14,7 @@ public class SelectableProvider extends Provider {
 
 	protected Provider provider = null;
 
-	protected Provider[] providers = new Provider[] { new HumanProvider(), new RandomProvider(), new FileProvider(), new MinimaxProvider() };
+	protected Provider[] providers = new Provider[] { new HumanProvider(), new RandomProvider(), new FileProvider(), new MinimaxProvider(), new AlphaBetaProvider() };
 
 	public SelectableProvider(final ProviderListener providerListener) {
 		for (int i = 0; i < providers.length; i++) {
