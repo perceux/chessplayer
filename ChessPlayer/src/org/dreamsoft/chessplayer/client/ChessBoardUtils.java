@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class ChessBoardUtils implements Constantes {
-		
+
 	public static ArrayList<ChessMove> getAllMoves(ChessBoard b, int color) {
 		ArrayList<ChessMove> allMoves = new ArrayList<ChessMove>();
 		for (int i = 0; i < 8; i++) {
@@ -85,6 +85,7 @@ public class ChessBoardUtils implements Constantes {
 			break;
 		case KNIGHT:
 			for (int[] d : knightMovesDelta) {
+//				System.out.println("(" + d[0] + "," + d[1] + ")");
 				addValid(b, x, y, list, x + d[0], y + d[1]);
 			}
 			break;
@@ -178,12 +179,13 @@ public class ChessBoardUtils implements Constantes {
 	private static void addValid(ChessBoard b, int x, int y, ArrayList<int[]> list, int x2, int y2) {
 		if (b.isOnBoard(x2, y2) && b.getColor(x2, y2) != b.getColor(x, y)) {
 			if (!isChessAfterMove(b, x, y, x2, y2)) {
+//				System.out.println("add:(" + x2 + "," + y2 + ")");
 				list.add(new int[] { x2, y2 });
 			}
 		}
 	}
 
-	private static int[][] knightMovesDelta = new int[][] { { +2, 1 }, { +2, 1 }, { -2, 1 }, { -2, 1 }, { +1, 2 }, { +1, 2 }, { -1, 2 }, { -1, 2 } };
+	private static int[][] knightMovesDelta = new int[][] { { -2, 1 }, { -1, 2 }, { 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 } };
 
 	private static boolean isChessAfterMove(ChessBoard b, int x, int y, int _x, int _y) {
 		ChessBoard testingBoard = b.clone();

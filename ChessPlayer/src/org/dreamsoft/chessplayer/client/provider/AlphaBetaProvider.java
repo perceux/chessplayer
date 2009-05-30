@@ -4,32 +4,62 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import org.dreamsoft.chessplayer.client.ChessMove;
+import org.dreamsoft.chessplayer.client.provider.ProviderListener.GameCommand;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Random;
+import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.RootPanel;
+import com.google.gwt.user.client.ui.TextBox;
 
 public class AlphaBetaProvider extends Provider {
 
-	private Vector<String> stringMoves = new Vector<String>();
+	private Vector<String> bestBoards = new Vector<String>();
 
-	private int maxDepth = 5;
+	private int maxDepth = 3;
 
 	private int nb;
+
+	private int color;
 
 	@Override
 	public ChessMove getNextMove(int color) {
 		nb = 0;
-		alphaBeta(chessBoard.getBoard(), -Integer.MAX_VALUE, Integer.MAX_VALUE, maxDepth, color);
+		setColor(color);
+		alphaBeta(chessBoard.getBoard(), -Integer.MAX_VALUE, Integer.MAX_VALUE, getMaxDepth(), color);
+
 		ChessMove result = null;
-		if (!stringMoves.isEmpty()) {
-			result = toChessMove(stringMoves.get(Random.nextInt(stringMoves.size() - 1)));
+		if (!bestBoards.isEmpty()) {
+			result = toChessMove(lastMove(bestBoards.get(Random.nextInt(bestBoards.size() - 1))));
 		}
-		System.out.println(nb + " evaluations");
+		debug.setHTML(nb + " evaluations");
+		// System.out.println(nb + " evaluations");
 		return result;
+	}
+
+	private void setColor(int color) {
+		this.color = color;
 	}
 
 	@Override
 	public boolean isAuto() {
-		return true;
+		return autoPlay.getValue();
+	}
+
+	private int getMaxDepth() {
+		String depth = depthTextBox.getValue();
+		int result = maxDepth;
+		try {
+			result = Integer.parseInt(depth);
+		} catch (Exception e) {
+			depthTextBox.setValue("" + maxDepth);
+		}
+		return result;
 	}
 
 	@Override
@@ -38,42 +68,41 @@ public class AlphaBetaProvider extends Provider {
 	}
 
 	public ChessMove toChessMove(String sMove) {
+		if (sMove == null || sMove.length() == 0)
+			return null;
 		return new ChessMove(sMove.charAt(0), sMove.charAt(1) % 8, sMove.charAt(1) / 8, sMove.charAt(2), sMove.charAt(3) % 8, sMove.charAt(3) / 8);
 	}
 
 	// A < B
 	public int alphaBeta(String board, int a, int b, int depth, int color) {
-		if (depth == 0) {
+		int current;
+		if (depth <= 0) {
 			nb++;
-			return evaluate(board, color);
+			current = evaluate(board, color);
 		} else {
-			int best = -Integer.MAX_VALUE;
+			current = -Integer.MAX_VALUE;
 			for (String childBoard : getChildBoards(board, color)) {
-				int val = -alphaBeta(childBoard, -b, -a, depth - 1, 3 - color);
-				if (val > best) {
-					best = val;
-					if (best > a) {
-						if (depth == maxDepth) {
-							stringMoves.clear();
-							stringMoves.add(lastMove(childBoard));
+				int score = -alphaBeta(childBoard, -b, -a, depth - 1, 3 - color);
+				if (score >= current) {
+					if (depth == maxDepth) {
+						if (score > current) {
+							bestBoards.clear();
+							debugBoards.clear();
 						}
-						a = best;
-						if (a > b) {
-							if (depth == maxDepth) {
-								stringMoves.clear();
-								stringMoves.add(lastMove(childBoard));
-							}
+						debugBoards.add(new HTML(boardToHTML(childBoard, " score=" + current + " move=" + toChessMove(lastMove(childBoard)))));
+						bestBoards.add(childBoard);
+					}
+					current = score;
+					if (score >= a) {
+						a = score;
+						if (score >= b) {
 							break;
-						} else if (a == best && depth == maxDepth) {
-							stringMoves.add(lastMove(childBoard));
 						}
-					} else if (a == best && depth == maxDepth) {
-						stringMoves.add(lastMove(childBoard));
 					}
 				}
 			}
-			return best;
 		}
+		return current;
 	}
 
 	public static String move(String board, int pos1, int pos2) {
@@ -88,7 +117,7 @@ public class AlphaBetaProvider extends Provider {
 		return board;
 	}
 
-	private static int[][] knightMovesDelta = new int[][] { { +2, 1 }, { +2, 1 }, { -2, 1 }, { -2, 1 }, { +1, 2 }, { +1, 2 }, { -1, 2 }, { -1, 2 } };
+	private static int[][] knightMovesDelta = new int[][] { { -2, 1 }, { -1, 2 }, { 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 } };
 
 	private static ArrayList<String> getChildBoards(String b, int color) {
 		ArrayList<String> childs = new ArrayList<String>();
@@ -107,10 +136,10 @@ public class AlphaBetaProvider extends Provider {
 							addCheckedBoard(childs, b, i, 0, step * 2);
 						}
 					}
-					if (i % 8 < 7 && b.charAt(i + 1 + step * 8) == 3 - color) {
+					if (i % 8 < 7 && b.charAt(i + 1 + step * 8) % 10 == 3 - color) {
 						addCheckedBoard(childs, b, i, 1, step);
 					}
-					if (i % 8 > 0 && b.charAt(i - 1 + step) == 3 - color) {
+					if (i % 8 > 0 && b.charAt(i - 1 + step * 8) % 10 == 3 - color) {
 						addCheckedBoard(childs, b, i, -1, step);
 					}
 
@@ -138,14 +167,12 @@ public class AlphaBetaProvider extends Provider {
 					addCheckedBoard(childs, b, i, 1, -1, true);
 					addCheckedBoard(childs, b, i, -1, 1, true);
 					addCheckedBoard(childs, b, i, -1, -1, true);
-
 					break;
 				case ROOK:
 					addCheckedBoard(childs, b, i, 0, 1, true);
 					addCheckedBoard(childs, b, i, 0, -1, true);
 					addCheckedBoard(childs, b, i, 1, 0, true);
 					addCheckedBoard(childs, b, i, -1, 0, true);
-
 					break;
 				case KNIGHT:
 					for (int[] d : knightMovesDelta) {
@@ -171,7 +198,6 @@ public class AlphaBetaProvider extends Provider {
 					addCheckedBoard(childs, b, i, -1, +1);
 					addCheckedBoard(childs, b, i, -1, -1);
 					addCheckedBoard(childs, b, i, -1, 0);
-
 					// T0,1,2,3,R4,5,6,T7
 					if (p < 100) { // O-O-O
 						if (b.charAt(i - 3) == EMPTY && b.charAt(i - 2) == EMPTY && b.charAt(i - 1) == EMPTY && b.charAt(i - 4) == ROOK * 10 + color && !isChess(move(b, i, i - 1), color)) {
@@ -196,18 +222,27 @@ public class AlphaBetaProvider extends Provider {
 	}
 
 	private static void addCheckedBoard(final ArrayList<String> childs, String b, int i, int dx, int dy, boolean repeat) {
-		if (isOnBoard(i % 8 + dx, i / 8 + dy)) {
-			int i2 = i + dx + dy * 8;
-			if ((b.charAt(i2) % 10) != (b.charAt(i) % 10)) {
-				String bam = move(b, i, i2);
-				if (!isChess(bam, b.charAt(i) % 10)) {
-					childs.add(bam);
-				}
-				if (repeat && b.charAt(i2) == EMPTY) {
-					addCheckedBoard(childs, bam, i2, dx, dy, repeat);
+		int x = i % 8;
+		int y = i / 8;
+		int color = b.charAt(i) % 10;
+		boolean exit = true;
+		do {
+			exit = true;
+			x += dx;
+			y += dy;
+			if (isOnBoard(x, y)) {
+				int i2 = x + (y) * 8;
+				if ((b.charAt(i2) % 10) != (color)) {
+					String bam = move(b, i, i2);
+					if (!isChess(bam, color)) {
+						childs.add(bam);
+					}
+					if (repeat && b.charAt(i2) == EMPTY) {
+						exit = false;
+					}
 				}
 			}
-		}
+		} while (!exit);
 	}
 
 	private static void addCheckedBoard(ArrayList<String> childs, String b, int i, int dx, int dy) {
@@ -216,12 +251,13 @@ public class AlphaBetaProvider extends Provider {
 
 	// A tester :)
 	private static boolean isChess(String bam, int color) {
-		int kp = bam.substring(0, 64).indexOf(KING * 10 + color);
+		int kp1 = bam.substring(0, 64).indexOf(KING * 10 + color);
+		int kp2 = bam.substring(0, 64).indexOf(100 + KING * 10 + color);
+		int kp = (kp1 >= 0 && kp1 < 65) ? kp1 : kp2;
 		return kp >= 0 && kp < 65 && isAttacked(bam, kp % 8, kp / 8, color);
 	}
 
 	private static boolean isAttacked(String b, int x, int y, int color) {
-		boolean attacked = false;
 		for (int deltax = -1; deltax <= 1; deltax++) {
 			for (int deltay = -1; deltay <= 1; deltay = ((deltax == 0 && deltay == -1) ? 1 : deltay + 1)) {
 				int dx = x;
@@ -236,36 +272,21 @@ public class AlphaBetaProvider extends Provider {
 					int p = b.charAt(dx + dy * 8);
 					if (p != EMPTY) {
 						if (p % 10 != color) {
-							switch (p % 100 / 10) {
-							case PAWN:
-								attacked = (first && (deltax * deltay != 0) && ((dy > y && color == BLACK) || (dy < y && color == WHITE)));
-								break;
-							case KING:
-								attacked = first;
-								break;
-							case BISHOP:
-								attacked = (deltax * deltay != 0);
-								break;
-							case QUEEN:
-								attacked = true;
-								break;
-							case ROOK:
-								attacked = (deltax * deltay == 0);
-								break;
-							}
+							int t = (p % 100) / 10;
+							if (first && (t == KING || (t == PAWN && (deltax * deltay != 0) && ((dy > y && color == BLACK) || (dy < y && color == WHITE)))) || (t == BISHOP && (deltax * deltay != 0))
+									|| t == QUEEN || (t == ROOK && (deltax * deltay == 0)))
+								return true;
 						}
 						first = false;
 						break;
 					}
 					first = false;
 				}
-				if (attacked)
-					return true;
 			}
 		}
 		for (int[] d : knightMovesDelta) {
 			if (isOnBoard(x + d[0], y + d[1])) {
-				if (b.charAt(x + d[0] + (y + d[1]) * 8) == KNIGHT * 10 + color) {
+				if (b.charAt(x + d[0] + (y + d[1]) * 8) % 100 == KNIGHT * 10 + (3 - color)) {
 					return true;
 				}
 			}
@@ -290,7 +311,91 @@ public class AlphaBetaProvider extends Provider {
 			int tmp = b.charAt(i);
 			if ((tmp % 10) == color)
 				result += pieceValue[(tmp % 100) / 10];
+			if ((tmp % 10) == 3 - color)
+				result -= pieceValue[(tmp % 100) / 10];
 		}
+		if (evalDebug.getValue())
+			debugBoards.add(new HTML(boardToHTML(b, "color=" + color + " eval=" + result)));
 		return result;
 	}
+
+	TextBox depthTextBox = new TextBox();
+
+	HTML debug = new HTML();
+
+	private CheckBox autoPlay = new CheckBox("auto", true);
+
+	private static CheckBox evalDebug = new CheckBox("evalDebug", true);
+
+	private static FlowPanel debugBoards = new FlowPanel();
+
+	@Override
+	public HorizontalPanel getToolbarPanel() {
+		if (toolbarPanel == null) {
+			autoPlay.setValue(true);
+			depthTextBox.setValue("" + getMaxDepth());
+			toolbarPanel = new HorizontalPanel();
+			toolbarPanel.add(new HTML("Depth:"));
+			toolbarPanel.add(depthTextBox);
+			toolbarPanel.add(autoPlay);
+			toolbarPanel.add(evalDebug);
+			toolbarPanel.add(new Button("Moves", new ClickHandler() {
+				public void onClick(ClickEvent event) {
+					debugBoards.clear();
+					for (String childBoard : getChildBoards(chessBoard.getBoard(), BLACK)) {
+						debugBoards.add(new HTML(boardToHTML(childBoard, "score=" + evaluate(childBoard, BLACK))));
+					}
+				}
+			}));
+
+			toolbarPanel.add(new Button("Bests", new ClickHandler() {
+				public void onClick(ClickEvent event) {
+					debugBoards.clear();
+					for (String childBoard : bestBoards) {
+						debugBoards.add(new HTML(boardToHTML(childBoard, "best score=" + evaluate(childBoard, BLACK))));
+					}
+				}
+			}));
+			// TODO Remove le debug à l'arrache
+			RootPanel.get().add(debugBoards);
+
+			Button buttonPlay = new Button("&gt;", new ClickHandler() {
+				public void onClick(ClickEvent event) {
+					fireGameCommand(GameCommand.PLAY);
+				}
+			});
+			toolbarPanel.add(buttonPlay);
+
+			toolbarPanel.add(new HTML(" Debug:"));
+			toolbarPanel.add(debug);
+		}
+		return toolbarPanel;
+	}
+
+	public static String boardToHTML(String b, String title) {
+		String html = "<table border=1 cellspacing=0 cellpadding=0>";
+		html += "<tr><td colspan=8 style='font-size:8px;'>" + title + "</td></tr>";
+		int lastMoveFrom = -1;
+		int lastMoveTo = -1;
+		if (b.length() > 67) {
+			lastMoveFrom = b.charAt(65);
+			lastMoveTo = b.charAt(67);
+		}
+		for (int i = 0; i < 8; i++) {
+			html += "<tr>";
+			for (int j = 0; j < 8; j++) {
+				int c = b.charAt(j + i * 8) % 100;
+				boolean hl = (j + i * 8 == lastMoveFrom || j + i * 8 == lastMoveTo);
+				html += "<td" + (hl ? " style='background-color:green;'" : " style='width:16px'") + "><img style='width:16px;height:16px' src='http://localhost:8080/images/" + c + ".gif'></td>";
+			}
+			html += "</tr>";
+		}
+		html += "</table><br>";
+		return html;
+	}
+
+	public int getColor() {
+		return color;
+	}
+
 }

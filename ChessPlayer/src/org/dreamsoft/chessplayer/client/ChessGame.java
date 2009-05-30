@@ -2,6 +2,7 @@ package org.dreamsoft.chessplayer.client;
 
 import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
 import org.dreamsoft.chessplayer.client.ChessBoardUtils.ChessStatus;
+import org.dreamsoft.chessplayer.client.provider.AlphaBetaProvider;
 import org.dreamsoft.chessplayer.client.provider.FileProvider;
 import org.dreamsoft.chessplayer.client.provider.HumanProvider;
 import org.dreamsoft.chessplayer.client.provider.Provider;
@@ -206,6 +207,9 @@ public class ChessGame extends Composite implements Constantes {
 		moveLog.setHTML("");
 		board.reset();
 		setTurn(WHITE);
+		selectableProvider[BLACK].getListBox().setSelectedIndex(4);
+		selectableProvider[BLACK].setProvider(new AlphaBetaProvider());
+		selectableProvider[BLACK].setChessBoard(board);
 	}
 
 }

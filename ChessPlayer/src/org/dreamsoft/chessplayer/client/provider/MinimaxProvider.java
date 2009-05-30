@@ -68,11 +68,6 @@ public class MinimaxProvider extends Provider {
 	}
 
 	/**
-	 * Capturing moves considered during the top level evaluations.
-	 */
-	// private Map<ChessMove, Double> capturingMovesConsidered = new
-	// HashMap<ChessMove, Double>();
-	/**
 	 * The number of evaluations that were performed to find the move were
 	 * selecting now.
 	 */

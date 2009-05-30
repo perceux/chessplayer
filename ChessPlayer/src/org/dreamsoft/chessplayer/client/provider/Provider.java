@@ -18,7 +18,7 @@ public abstract class Provider implements Constantes {
 
 	protected int delay = 0;
 
-	private ArrayList<ProviderListener> providerListeners;
+	private ArrayList<ProviderListener> providerListeners = new ArrayList<ProviderListener>();
 
 	protected String message;
 
