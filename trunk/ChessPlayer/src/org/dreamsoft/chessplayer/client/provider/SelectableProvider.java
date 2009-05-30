@@ -46,11 +46,12 @@ public class SelectableProvider extends Provider {
 		for (int j = 0; j < providers.length; j++) {
 			Provider p = providers[j];
 			if (provider.getClass().equals(p.getClass())) {
-				providers[j] = p;
-				p.setChessBoard(chessBoard);
+				providers[j] = provider;
+				provider.setChessBoard(chessBoard);
 				listBox.setSelectedIndex(j);
 			}
 		}
+		fireProviderChange(provider);
 	}
 
 	@Override
@@ -75,6 +76,7 @@ public class SelectableProvider extends Provider {
 			Provider p = providers[i];
 			p.setChessBoard(chessBoard);
 		}
+		this.provider.setChessBoard(chessBoard);
 	}
 
 	@Override
