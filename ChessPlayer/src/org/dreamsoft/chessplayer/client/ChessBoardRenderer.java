@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.Grid;
 import com.google.gwt.user.client.ui.HasAlignment;
@@ -156,6 +157,36 @@ public class ChessBoardRenderer implements Constantes {
 
 	public Widget getWidget() {
 		return grid;
+	}
+
+	public void promote(final ChessMove currentMove, final Command command) {
+		final DialogBox promoteDialog = new DialogBox(true, true);
+		promoteDialog.setText("Promotion");
+		Grid f = new Grid(2, 4);
+		f.setCellSpacing(4);
+		final int color = currentMove.fromPiece % 10;
+		int pieceChoice[] = new int[] { QUEEN, BISHOP, KNIGHT, ROOK };
+		RadioButton group[] = new RadioButton[4];
+		for (int i = 0; i < pieceChoice.length; i++) {
+			f.setWidget(0, i, makeImage(pieceChoice[i] * 10 + color));
+			RadioButton r = new RadioButton("type");
+			r.setFormValue("" + pieceChoice[i]);
+			final int p = pieceChoice[i];
+			r.addClickHandler(new ClickHandler() {
+				public void onClick(ClickEvent event) {
+					currentMove.fromPiece = p * 10 + color;
+					if (promoteDialog.isShowing())
+						promoteDialog.hide();
+					command.execute();
+				};
+			});
+			f.setWidget(1, i, r);
+			f.getCellFormatter().setHorizontalAlignment(1, i, HasAlignment.ALIGN_CENTER);
+			group[i] = r;
+		}
+		promoteDialog.setWidget(f);
+		promoteDialog.show();
+		promoteDialog.center();
 	}
 
 }

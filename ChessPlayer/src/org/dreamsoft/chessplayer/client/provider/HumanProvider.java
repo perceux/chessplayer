@@ -8,6 +8,8 @@ import org.dreamsoft.chessplayer.client.ChessMove;
 import org.dreamsoft.chessplayer.client.ChessBoardRenderer.HighlightMode;
 import org.dreamsoft.chessplayer.client.provider.ProviderListener.GameCommand;
 
+import com.google.gwt.user.client.Command;
+
 public class HumanProvider extends Provider {
 
 	private ArrayList<int[]> legalMoveForselectPiece = null;
@@ -15,6 +17,8 @@ public class HumanProvider extends Provider {
 	private int startPos = -1;
 
 	private int endPos = -1;
+
+	private ChessMove currentMove = null;
 
 	public void unselect() {
 		startPos = -1;
@@ -26,9 +30,8 @@ public class HumanProvider extends Provider {
 
 	@Override
 	public ChessMove getNextMove(int color) {
-		ChessMove move = chessBoard.getMove(startPos % 10, startPos / 10, endPos % 10, endPos / 10);
 		unselect();
-		return move;
+		return currentMove;
 	}
 
 	public void boardClick(int x, int y, int color) {
@@ -46,10 +49,20 @@ public class HumanProvider extends Provider {
 		} else {
 			endPos = x + y * 10;
 			if (startPos != endPos) {
+				currentMove = null;
 				for (Iterator<int[]> iter = legalMoveForselectPiece.iterator(); iter.hasNext();) {
 					int pos[] = (int[]) iter.next();
 					if (pos[0] == x && pos[1] == y) {
-						fireGameCommand(GameCommand.PLAY);
+						currentMove = chessBoard.getMove(startPos % 10, startPos / 10, endPos % 10, endPos / 10);
+						if (currentMove.fromPiece % 100 / 10 == PAWN && (currentMove.toY == 0 || currentMove.toY == 7)) {
+							chessBoard.getRenderer().promote(currentMove, new Command() {
+								public void execute() {
+									fireGameCommand(GameCommand.PLAY);
+								}
+							});
+						} else {
+							fireGameCommand(GameCommand.PLAY);
+						}
 						return;
 					}
 				}

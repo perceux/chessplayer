@@ -2,8 +2,13 @@ package org.dreamsoft.chessplayer.client;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class ChessBoardUtils implements Constantes {
+
+	public static final String PIECE_LETTERS = " TCFRD";
+
+	public static final String PIECE_LETTERS_ENGLISH = " RNBKQ";
 
 	public static ArrayList<ChessMove> getAllMoves(ChessBoard b, int color) {
 		ArrayList<ChessMove> allMoves = new ArrayList<ChessMove>();
@@ -85,7 +90,7 @@ public class ChessBoardUtils implements Constantes {
 			break;
 		case KNIGHT:
 			for (int[] d : knightMovesDelta) {
-//				System.out.println("(" + d[0] + "," + d[1] + ")");
+				// System.out.println("(" + d[0] + "," + d[1] + ")");
 				addValid(b, x, y, list, x + d[0], y + d[1]);
 			}
 			break;
@@ -179,7 +184,7 @@ public class ChessBoardUtils implements Constantes {
 	private static void addValid(ChessBoard b, int x, int y, ArrayList<int[]> list, int x2, int y2) {
 		if (b.isOnBoard(x2, y2) && b.getColor(x2, y2) != b.getColor(x, y)) {
 			if (!isChessAfterMove(b, x, y, x2, y2)) {
-//				System.out.println("add:(" + x2 + "," + y2 + ")");
+				// System.out.println("add:(" + x2 + "," + y2 + ")");
 				list.add(new int[] { x2, y2 });
 			}
 		}
@@ -304,4 +309,50 @@ public class ChessBoardUtils implements Constantes {
 		return board.substring(0, pos) + c + board.substring(pos + 1);
 	}
 
+	private native static void regexpMatches(String pattern, String flags, String text, List<?> matches)/*-{
+		var regExp = new RegExp(pattern, flags);
+		var result = text.match(regExp);
+		if (result == null) return;
+		for (var i=0;i<result.length;i++)
+		matches.@java.util.ArrayList::add(Ljava/lang/Object;)(result[i]);
+	}-*/;
+
+	public static ChessMove parseMove(String text, boolean isEnglish, ChessBoard chessBoard, int turnColor) {
+		String pat = "([" + (PIECE_LETTERS_ENGLISH + PIECE_LETTERS).replaceAll(" ", "") + "]{0,1})([a-h]{0,1})([1-8]{0,1})[x]{0,1}([a-h])([1-8])[\\+#]{0,1}";
+
+		// TODO traiter l'exception du petit et grand rock "O-O" et "O-O-O"
+		if (text.matches(pat)) {
+			ArrayList<?> matches = new ArrayList<Object>();
+			regexpMatches(pat, "", text, matches);
+			String typePiece = (String) matches.get(1);
+
+			// System anglophone " TCFRD" <=> " RNBKQ"
+			int type = 1 + PIECE_LETTERS.indexOf(typePiece);
+			int typeEnglish = 1 + PIECE_LETTERS_ENGLISH.indexOf(typePiece);
+			if (isEnglish) {
+				type = typeEnglish;
+			} else {
+				if (typeEnglish > 1 && type != KING) {
+					isEnglish = true;
+					type = typeEnglish;
+				}
+			}
+			if (type < 1) {
+				type = PAWN;
+			}
+
+			int xstart = -1 + " abcdefgh".indexOf((String) matches.get(2));
+			int ystart = 8 - Integer.parseInt("0" + (String) matches.get(3));
+			int xend = -1 + " abcdefgh".indexOf((String) matches.get(4));
+			int yend = 8 - Integer.parseInt("0" + (String) matches.get(5));
+
+			int[] startPos = ChessBoardUtils.searchPieceXY(chessBoard, type, turnColor, ystart, xstart, yend, xend);
+			if (startPos != null) {
+				ChessMove move = chessBoard.getMove(startPos[0], startPos[1], xend, yend);
+				move.text = text;
+				return move;
+			}
+		}
+		return null;
+	}
 }

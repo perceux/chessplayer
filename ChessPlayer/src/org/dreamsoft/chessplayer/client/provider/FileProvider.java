@@ -2,7 +2,6 @@ package org.dreamsoft.chessplayer.client.provider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import org.dreamsoft.chessplayer.client.ChessBoardUtils;
 import org.dreamsoft.chessplayer.client.ChessMove;
@@ -22,10 +21,6 @@ import com.google.gwt.user.client.ui.ToggleButton;
 
 public class FileProvider extends Provider {
 
-	public static final String PIECE_LETTERS = " TCFRD";
-
-	public static final String PIECE_LETTERS_ENGLISH = " RNBKQ";
-
 	private boolean isEnglish;
 
 	protected int turnNumber;
@@ -37,7 +32,7 @@ public class FileProvider extends Provider {
 	ArrayList<String> moves = new ArrayList<String>();
 
 	HashMap<Integer, String> comments = new HashMap<Integer, String>();
-	
+
 	@Override
 	public HorizontalPanel getToolbarPanel() {
 		if (toolbarPanel == null) {
@@ -111,14 +106,6 @@ public class FileProvider extends Provider {
 		buttonPlay.setDown(auto);
 	}
 
-	private native void regexpMatches(String pattern, String flags, String text, List<?> matches)/*-{
-		var regExp = new RegExp(pattern, flags);
-		var result = text.match(regExp);
-		if (result == null) return;
-		for (var i=0;i<result.length;i++)
-		matches.@java.util.ArrayList::add(Ljava/lang/Object;)(result[i]);
-	}-*/;
-
 	public void loadGame(String filename) {
 		RequestBuilder rb = new RequestBuilder(RequestBuilder.GET, filename);
 		rb.setCallback(new RequestCallback() {
@@ -182,41 +169,8 @@ public class FileProvider extends Provider {
 			// Affiche le commentaire
 			setMessage(comment);
 
-			String pat = "([" + (PIECE_LETTERS_ENGLISH + PIECE_LETTERS).replaceAll(" ", "") + "]{0,1})([a-h]{0,1})([1-8]{0,1})[x]{0,1}([a-h])([1-8])[\\+#]{0,1}";
+			return ChessBoardUtils.parseMove(text, isEnglish, chessBoard, turnColor);
 
-			// TODO traiter l'exception du petit et grand rock "O-O" et "O-O-O"
-			if (text.matches(pat)) {
-				ArrayList<?> matches = new ArrayList<Object>();
-				regexpMatches(pat, "", text, matches);
-				String typePiece = (String) matches.get(1);
-
-				// System anglophone " TCFRD" <=> " RNBKQ"
-				int type = 1 + PIECE_LETTERS.indexOf(typePiece);
-				int typeEnglish = 1 + PIECE_LETTERS_ENGLISH.indexOf(typePiece);
-				if (isEnglish) {
-					type = typeEnglish;
-				} else {
-					if (typeEnglish > 1 && type != KING) {
-						isEnglish = true;
-						type = typeEnglish;
-					}
-				}
-				if (type < 1) {
-					type = PAWN;
-				}
-
-				int xstart = -1 + " abcdefgh".indexOf((String) matches.get(2));
-				int ystart = 8 - Integer.parseInt("0" + (String) matches.get(3));
-				int xend = -1 + " abcdefgh".indexOf((String) matches.get(4));
-				int yend = 8 - Integer.parseInt("0" + (String) matches.get(5));
-
-				int[] startPos = ChessBoardUtils.searchPieceXY(chessBoard,type, turnColor, ystart, xstart, yend, xend);
-				if (startPos != null) {
-					ChessMove move = chessBoard.getMove(startPos[0], startPos[1], xend, yend);
-					move.text = text;
-					return move;
-				}
-			}
 		}
 		return null;
 	}
