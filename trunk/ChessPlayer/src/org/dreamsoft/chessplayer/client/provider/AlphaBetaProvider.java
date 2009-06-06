@@ -16,22 +16,35 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.Tree;
+import com.google.gwt.user.client.ui.TreeItem;
 
 public class AlphaBetaProvider extends Provider {
 
 	private Vector<String> bestBoards = new Vector<String>();
 
-	private int maxDepth = 3;
+	private int maxDepth = 2;
 
 	private int nb;
 
-	private int color;
+	private int col;
+
+	private TreeItem root = new TreeItem();
+
+	private Tree debugTree = new Tree();
 
 	@Override
 	public ChessMove getNextMove(int color) {
 		nb = 0;
 		setColor(color);
-		alphaBeta(chessBoard.getBoard(), -Integer.MAX_VALUE, Integer.MAX_VALUE, getMaxDepth(), color);
+		bestBoards.clear();
+		debugBoards.clear();
+		// negascout(root, chessBoard.getBoard(), -Integer.MAX_VALUE,
+		// Integer.MAX_VALUE, getMaxDepth(), color);
+		negascout(chessBoard.getBoard(), -Integer.MAX_VALUE, Integer.MAX_VALUE, maxDepth, color);
+		debugTree.addItem(root);
+		debugBoards.clear();
+		debugBoards.add(debugTree);
 
 		ChessMove result = null;
 		if (!bestBoards.isEmpty()) {
@@ -43,7 +56,7 @@ public class AlphaBetaProvider extends Provider {
 	}
 
 	private void setColor(int color) {
-		this.color = color;
+		this.col = color;
 	}
 
 	@Override
@@ -73,8 +86,112 @@ public class AlphaBetaProvider extends Provider {
 		return new ChessMove(sMove.charAt(0), sMove.charAt(1) % 8, sMove.charAt(1) / 8, sMove.charAt(2), sMove.charAt(3) % 8, sMove.charAt(3) / 8);
 	}
 
+	public int negascout(String board, int alpha, int beta, int depth, int color) {
+		if (depth == 0) {
+			nb++;
+			return evaluate(board, 3-color);
+		}
+		int a = alpha;
+		int b = beta;
+		int i = 0;
+		ArrayList<String> children = getChildBoards(board, color);
+		for (String child : children) {
+			int t = -negascout(child, -b, -a, depth - 1, 3 - color);
+			if (t >= a && t < beta && i > 0) {
+				a = -negascout(child, -beta, -t, depth - 1, 3 - color);
+				if (depth == maxDepth) {
+					if (t > a)
+						bestBoards.clear();
+					bestBoards.add(child);
+				}
+			}
+			if (t >= a) {
+				a = t;
+				if (depth == maxDepth) {
+					if (t > a)
+						bestBoards.clear();
+					bestBoards.add(child);
+				}
+			}
+			if (a >= beta) {
+				return a;
+			}
+			b = a + 1; /* set new null window */
+		}
+		return a;
+	}
+
+	/**
+	 * <pre>
+	 * function negascout(node, depth, α, β)
+	 * 	    if node is a terminal node or depth = 0
+	 * 	        return the heuristic value of node
+	 * 	    b := β
+	 * 	    foreach child of node
+	 * 	        a := -negascout (child, depth-1, -b, -α)
+	 * 	        if a&gt;α
+	 * 	            α := a
+	 * 	        if α≥β
+	 * 	            return α
+	 * 	        if α≥b
+	 * 	           α := -negascout(child, depth-1, -β, -α)  
+	 * 	           if α≥β
+	 * 	               return α
+	 * 	        b := α+1             
+	 * 	    return α
+	 * </pre>
+	 * 
+	 * @param item
+	 */
+	public int negascout(TreeItem item, String board, int α, int β, int depth, int color) {
+		if (depth == 0) {
+			nb++;
+			return evaluate(board, color);
+		}
+		int b = β; // (* initial window is (-β, -α) *)
+		ArrayList<String> children = getChildBoards(board, color);
+		for (String child : children) {
+			TreeItem childItem = new TreeItem();
+			// childItem.setHTML(boardToHTML(child, "size=" + children.size() +
+			// " depth=" + (depth - 1) + " color=" + (3 - color)));
+			// item.addItem(childItem);
+			int a = -negascout(childItem, child, -b, -α, depth - 1, 3 - color);
+			if (a >= α) {
+				if (depth == maxDepth) {
+					if (a > α)
+						bestBoards.clear();
+					bestBoards.add(child);
+				}
+				α = a;
+			}
+			if (α >= β) {
+				return α;// (* Beta cut-off *)
+			}
+			if (α >= b) { // (* check if null-window failed high*)
+				α = -negascout(childItem, child, -β, -α, depth - 1, 3 - color);
+				// (* full re-search *)
+				if (α >= β)
+					return α;// (* Beta cut-off *)
+			}
+			b = α + 1;
+		}
+		return α;
+	}
+
+	/**
+	 * <pre>
+	 </pre>
+	 * 
+	 * @param item
+	 * @param board
+	 * @param a
+	 * @param b
+	 * @param depth
+	 * @param color
+	 * @return
+	 */
 	// A < B
-	public int alphaBeta(String board, int a, int b, int depth, int color) {
+	public int alphaBeta(TreeItem item, String board, int a, int b, int depth, int color) {
 		int current;
 		if (depth <= 0) {
 			nb++;
@@ -82,14 +199,16 @@ public class AlphaBetaProvider extends Provider {
 		} else {
 			current = -Integer.MAX_VALUE;
 			for (String childBoard : getChildBoards(board, color)) {
-				int score = -alphaBeta(childBoard, -b, -a, depth - 1, 3 - color);
+				TreeItem childItem = new TreeItem();
+				int score = -alphaBeta(childItem, childBoard, -b, -a, depth - 1, 3 - color);
+				childItem.setHTML(boardToHTML(childBoard, "a=" + a + " b=" + b + " current=" + current + " depth=" + (depth - 1) + " color=" + (3 - color) + " score=" + score));
+				item.addItem(childItem);
 				if (score >= current) {
 					if (depth == maxDepth) {
 						if (score > current) {
 							bestBoards.clear();
 							debugBoards.clear();
 						}
-						debugBoards.add(new HTML(boardToHTML(childBoard, " score=" + current + " move=" + toChessMove(lastMove(childBoard)))));
 						bestBoards.add(childBoard);
 					}
 					current = score;
@@ -103,6 +222,10 @@ public class AlphaBetaProvider extends Provider {
 			}
 		}
 		return current;
+	}
+
+	public static String setPiece(String board, int pos, char c) {
+		return board.substring(0, pos) + c + board.substring(pos + 1);
 	}
 
 	public static String move(String board, int pos1, int pos2) {
@@ -119,7 +242,7 @@ public class AlphaBetaProvider extends Provider {
 
 	private static int[][] knightMovesDelta = new int[][] { { -2, 1 }, { -1, 2 }, { 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 } };
 
-	private static ArrayList<String> getChildBoards(String b, int color) {
+	public static ArrayList<String> getChildBoards(String b, int color) {
 		ArrayList<String> childs = new ArrayList<String>();
 		// Add legal move board
 		for (int i = 0; i < 64; i++) {
@@ -130,33 +253,43 @@ public class AlphaBetaProvider extends Provider {
 				case PAWN:
 					int step = (color == WHITE) ? -1 : 1;
 
-					if (b.charAt(i + step * 8) == EMPTY) {
-						addCheckedBoard(childs, b, i, 0, step);
-						if (p < 100 && b.charAt(i + step * 2 * 8) == EMPTY) {
-							addCheckedBoard(childs, b, i, 0, step * 2);
+					// Promote
+					if (i / 8 + step == 0 || i / 8 + step == 7) {
+						addCheckedBoard(childs, setPiece(b, i, (char) (QUEEN * 10 + color)), i, 0, step);
+						addCheckedBoard(childs, setPiece(b, i, (char) (BISHOP * 10 + color)), i, 0, step);
+						addCheckedBoard(childs, setPiece(b, i, (char) (KNIGHT * 10 + color)), i, 0, step);
+						addCheckedBoard(childs, setPiece(b, i, (char) (ROOK * 10 + color)), i, 0, step);
+					} else {
+						if (b.charAt(i + step * 8) == EMPTY) {
+							addCheckedBoard(childs, b, i, 0, step);
+							if (p < 100 && b.charAt(i + step * 2 * 8) == EMPTY) {
+								addCheckedBoard(childs, b, i, 0, step * 2);
+							}
 						}
-					}
-					if (i % 8 < 7 && b.charAt(i + 1 + step * 8) % 10 == 3 - color) {
-						addCheckedBoard(childs, b, i, 1, step);
-					}
-					if (i % 8 > 0 && b.charAt(i - 1 + step * 8) % 10 == 3 - color) {
-						addCheckedBoard(childs, b, i, -1, step);
-					}
+						if (i % 8 < 7 && b.charAt(i + 1 + step * 8) % 10 == (3 - color)) {
+							addCheckedBoard(childs, b, i, 1, step);
+						}
+						if (i % 8 > 0 && b.charAt(i - 1 + step * 8) % 10 == (3 - color)) {
+							addCheckedBoard(childs, b, i, -1, step);
+						}
 
-					// En passant int enPassantY = (color == WHITE) ? 3 : 4;
-					// if (y == enPassantY) {
-					// String lastMove = lastMove(childBoard);
-					// if (lastMove.fromPiece % 100 == PAWN 10 + oponentColor &&
-					// lastMove.toY == enPassantY &&
-					// Math.abs(lastMove.fromY - lastMove.toY) > 1) {
-					// if (lastMove.toX == x - 1) { addValid(b, x, y, list, x -
-					// 1, y1); }
-					// else if (lastMove.toX == x + 1) {
-					// addValid(b, x, y, list, x + 1, y1);
-					// }
-					// }
-					// }
-					// }
+						// En passant
+						/**
+						 * <pre>
+						 * int enPassantY = (color == WHITE) ? 3 : 4;
+						 * 						if (i / 8 == enPassantY) {
+						 * 							String lastMove = lastMove(b);
+						 * 							if (lastMove.charAt(0) % 100 == PAWN * 10 + (3 - color) &amp;&amp; lastMove.charAt(3) / 8 == enPassantY &amp;&amp; Math.abs(lastMove.charAt(1) / 8 - lastMove.charAt(3) / 8) &gt; 1) {
+						 * 								if (lastMove.charAt(3) % 8 == i % 8 - 1) {
+						 * 									addCheckedBoard(childs, setPiece(b, lastMove.charAt(3), EMPTY), i, -1, step);
+						 * 								} else if (lastMove.charAt(3) % 8 == i % 8 + 1) {
+						 * 									addCheckedBoard(childs, setPiece(b, lastMove.charAt(3), EMPTY), i, 1, step);
+						 * 								}
+						 * 							}
+						 * }
+						 */
+
+					}
 					break;
 				case QUEEN:
 					addCheckedBoard(childs, b, i, 0, 1, true);
@@ -373,8 +506,8 @@ public class AlphaBetaProvider extends Provider {
 	}
 
 	public static String boardToHTML(String b, String title) {
-		String html = "<table border=1 cellspacing=0 cellpadding=0>";
-		html += "<tr><td colspan=8 style='font-size:8px;'>" + title + "</td></tr>";
+		String html = "<style>td img {font-size:8px;height:16px;width:16px}</style><table border=1 cellspacing=0 cellpadding=0>";
+		html += "<tr><td colspan=8>" + title + "</td></tr>";
 		int lastMoveFrom = -1;
 		int lastMoveTo = -1;
 		if (b.length() > 67) {
@@ -386,7 +519,7 @@ public class AlphaBetaProvider extends Provider {
 			for (int j = 0; j < 8; j++) {
 				int c = b.charAt(j + i * 8) % 100;
 				boolean hl = (j + i * 8 == lastMoveFrom || j + i * 8 == lastMoveTo);
-				html += "<td" + (hl ? " style='background-color:green;'" : " style='width:16px'") + "><img style='width:16px;height:16px' src='http://localhost:8080/images/" + c + ".gif'></td>";
+				html += "<td" + (hl ? " style='background-color:green;'" : "") + "><img src='images/" + c + ".gif'></td>";
 			}
 			html += "</tr>";
 		}
@@ -395,7 +528,7 @@ public class AlphaBetaProvider extends Provider {
 	}
 
 	public int getColor() {
-		return color;
+		return col;
 	}
 
 }
