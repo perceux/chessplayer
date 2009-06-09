@@ -123,59 +123,59 @@ public class AlphaBetaProvider extends Provider {
 
 	/**
 	 * <pre>
-	 * function negascout(node, depth, α, β)
+	 * function negascout(node, depth, alpha, beta)
 	 * 	    if node is a terminal node or depth = 0
 	 * 	        return the heuristic value of node
-	 * 	    b := β
+	 * 	    b := beta
 	 * 	    foreach child of node
-	 * 	        a := -negascout (child, depth-1, -b, -α)
-	 * 	        if a&gt;α
-	 * 	            α := a
-	 * 	        if α≥β
-	 * 	            return α
-	 * 	        if α≥b
-	 * 	           α := -negascout(child, depth-1, -β, -α)  
-	 * 	           if α≥β
-	 * 	               return α
-	 * 	        b := α+1             
-	 * 	    return α
+	 * 	        a := -negascout (child, depth-1, -b, -alpha)
+	 * 	        if a&gt;alpha
+	 * 	            alpha := a
+	 * 	        if alpha >= beta
+	 * 	            return alpha
+	 * 	        if alpha >= b
+	 * 	           alpha := -negascout(child, depth-1, -beta, -alpha)  
+	 * 	           if alpha >= beta
+	 * 	               return alpha
+	 * 	        b := alpha+1             
+	 * 	    return alpha
 	 * </pre>
 	 * 
 	 * @param item
 	 */
-	public int negascout(TreeItem item, String board, int α, int β, int depth, int color) {
+	public int negascout(TreeItem item, String board, int alpha, int beta, int depth, int color) {
 		if (depth == 0) {
 			nb++;
 			return evaluate(board, color);
 		}
-		int b = β; // (* initial window is (-β, -α) *)
+		int b = beta; // (* initial window is (-beta, -alpha) *)
 		ArrayList<String> children = getChildBoards(board, color);
 		for (String child : children) {
 			TreeItem childItem = new TreeItem();
 			// childItem.setHTML(boardToHTML(child, "size=" + children.size() +
 			// " depth=" + (depth - 1) + " color=" + (3 - color)));
 			// item.addItem(childItem);
-			int a = -negascout(childItem, child, -b, -α, depth - 1, 3 - color);
-			if (a >= α) {
+			int a = -negascout(childItem, child, -b, -alpha, depth - 1, 3 - color);
+			if (a >= alpha) {
 				if (depth == maxDepth) {
-					if (a > α)
+					if (a > alpha)
 						bestBoards.clear();
 					bestBoards.add(child);
 				}
-				α = a;
+				alpha = a;
 			}
-			if (α >= β) {
-				return α;// (* Beta cut-off *)
+			if (alpha >= beta) {
+				return alpha;// (* Beta cut-off *)
 			}
-			if (α >= b) { // (* check if null-window failed high*)
-				α = -negascout(childItem, child, -β, -α, depth - 1, 3 - color);
+			if (alpha >= b) { // (* check if null-window failed high*)
+				alpha = -negascout(childItem, child, -beta, -alpha, depth - 1, 3 - color);
 				// (* full re-search *)
-				if (α >= β)
-					return α;// (* Beta cut-off *)
+				if (alpha >= beta)
+					return alpha;// (* Beta cut-off *)
 			}
-			b = α + 1;
+			b = alpha + 1;
 		}
-		return α;
+		return alpha;
 	}
 
 	/**
